@@ -20,12 +20,15 @@ import {
   ChevronDown,
   ChevronUp,
   LayoutGrid,
+  FileText,
+  Pencil,
 } from 'lucide-react';
 import type { Category, TransactionType, CategoryType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { iconGroups } from '@/lib/constants/categories';
 import { CategorySelectSheet } from './category-selete';
+import { useCategoryStore } from '@/lib/stores';
 
 interface CategoryScrollProps {
   categories: Category[];
@@ -88,6 +91,25 @@ export function CategoryScroll({
   // Category select sheet state
   const [showCategorySelect, setShowCategorySelect] = useState(false);
 
+  // Settings tab state
+  const [settingsTab, setSettingsTab] = useState<'display' | 'notes'>('display');
+
+  // Notes management state
+  const [editingNoteCategory, setEditingNoteCategory] = useState<string | null>(null);
+  const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
+  const [editingNoteValue, setEditingNoteValue] = useState('');
+  const [newNoteValue, setNewNoteValue] = useState('');
+  const [addingNoteCategoryId, setAddingNoteCategoryId] = useState<string | null>(null);
+
+  // Category store for notes management
+  const addNoteToCategory = useCategoryStore((s) => s.addNoteToCategory);
+  const removeNoteFromCategory = useCategoryStore((s) => s.removeNoteFromCategory);
+  const allExpenseCategories = useCategoryStore((s) => s.expenseCategories);
+  const allIncomeCategories = useCategoryStore((s) => s.incomeCategories);
+
+  // Get categories with notes for current type
+  const categoriesForNotes = transactionType === 'expense' ? allExpenseCategories : allIncomeCategories;
+
   // Load visible count from localStorage
   useEffect(() => {
     const stored = localStorage.getItem(`${VISIBLE_COUNT_KEY}-${transactionType}`);
@@ -98,15 +120,18 @@ export function CategoryScroll({
     }
   }, [transactionType]);
 
-  // Sync ordered categories when categories prop changes
+  // Sync ordered categories when categories prop changes (only when modal is closed)
   useEffect(() => {
-    setOrderedCategories(categories);
-    setLocalCategories(categories);
-  }, [categories]);
+    if (!showSettings) {
+      setOrderedCategories(categories);
+      setLocalCategories(categories);
+    }
+  }, [categories, showSettings]);
 
-  // Reset modal state when opened
+  // Reset modal state only when modal opens (showSettings transitions to true)
+  const prevShowSettings = useRef(false);
   useEffect(() => {
-    if (showSettings) {
+    if (showSettings && !prevShowSettings.current) {
       setLocalCategories([...orderedCategories]);
       setLocalVisibleCount(visibleCount);
       setHasChanges(false);
@@ -117,7 +142,14 @@ export function CategoryScroll({
       setExpandedGroup(null);
       setIsDeleteMode(false);
       setCategoryToDelete(null);
+      setSettingsTab('display');
+      setEditingNoteCategory(null);
+      setEditingNoteIndex(null);
+      setEditingNoteValue('');
+      setNewNoteValue('');
+      setAddingNoteCategoryId(null);
     }
+    prevShowSettings.current = showSettings;
   }, [showSettings, orderedCategories, visibleCount]);
 
   // Focus input when add form opens
@@ -613,644 +645,916 @@ export function CategoryScroll({
               </div>
             </div>
 
-            {/* Visible Count Selector */}
-            <div className="px-5 pb-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Eye className="size-3.5 text-muted-foreground" />
-                <span className="text-xs font-medium text-foreground">จำนวนที่แสดง</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {uniqueOptions.map((count) => (
-                  <button
-                    key={count}
-                    onClick={() => handleVisibleCountChange(count)}
-                    className={cn(
-                      'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200',
-                      'border-2',
-                      localVisibleCount === count
-                        ? cn(
-                          'scale-105 shadow-md',
-                          transactionType === 'expense'
-                            ? 'border-expense bg-expense/15 text-expense shadow-expense/20'
-                            : 'border-income bg-income/15 text-income shadow-income/20'
-                        )
-                        : 'border-border bg-muted/30 text-muted-foreground hover:border-foreground/30'
-                    )}
-                  >
-                    {count === localCategories.length ? 'ทั้งหมด' : count}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Mode Toggle - Delete / Reorder */}
-            <div className="px-5 pb-3">
-              <div className="flex items-center justify-between">
-                {/* Delete Mode Toggle */}
+            {/* Tab Buttons */}
+            <div className="px-5 pb-2 pt-1">
+              <div className="flex gap-1 p-1 rounded-xl bg-muted/50">
                 <button
-                  onClick={() => setIsDeleteMode(!isDeleteMode)}
+                  onClick={() => setSettingsTab('display')}
                   className={cn(
-                    'group flex items-center gap-2 px-3 py-2 rounded-xl',
-                    'text-xs font-medium transition-all duration-300',
-                    'border-2',
-                    isDeleteMode
-                      ? 'border-destructive/50 bg-destructive/10 text-destructive'
-                      : 'border-border/50 bg-muted/30 text-muted-foreground hover:border-destructive/30 hover:text-destructive'
+                    'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all',
+                    settingsTab === 'display'
+                      ? cn(
+                          'bg-card shadow-sm',
+                          transactionType === 'expense' ? 'text-expense' : 'text-income'
+                        )
+                      : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  {isDeleteMode ? (
-                    <ToggleRight className="size-4" />
-                  ) : (
-                    <ToggleLeft className="size-4" />
-                  )}
-                  <Trash2 className={cn(
-                    'size-3.5 transition-transform',
-                    isDeleteMode && 'animate-pulse'
-                  )} />
-                  <span>{isDeleteMode ? 'โหมดลบเปิดอยู่' : 'โหมดลบ'}</span>
+                  <Eye className="size-3.5" />
+                  จัดการหมวดหมู่
                 </button>
-
-                {/* Instruction Text */}
-                <span className={cn(
-                  "text-[10px] font-medium flex items-center gap-1 transition-colors",
-                  isDeleteMode
-                    ? 'text-destructive'
-                    : isTouchDragging
-                      ? transactionType === 'expense' ? 'text-expense' : 'text-income'
-                      : 'text-muted-foreground'
-                )}>
-                  {isDeleteMode ? (
-                    <>
-                      <AlertTriangle className="size-2.5" />
-                      กดเพื่อลบ
-                    </>
-                  ) : isTouchDragging ? (
-                    <>
-                      <Move className="size-2.5 animate-pulse" />
-                      ลากไปวางตำแหน่งใหม่
-                    </>
-                  ) : (
-                    <>
-                      <GripVertical className="size-2.5" />
-                      กดค้างเพื่อลาก
-                    </>
-                  )}
-                </span>
-              </div>
-            </div>
-
-            {/* Category Grid - Horizontal Rows with Scroll-Y */}
-            <div
-              className={cn(
-                'flex-1 overflow-y-auto px-3 py-2 min-h-0 max-h-[40vh] relative',
-                isTouchDragging && 'overflow-hidden'
-              )}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              onTouchCancel={handleTouchCancel}
-            >
-              {/* Touch drag overlay indicator */}
-              {isTouchDragging && (
-                <div className={cn(
-                  "absolute inset-0 z-40 pointer-events-none",
-                  "bg-linear-to-b from-transparent via-transparent to-background/50",
-                  "animate-in fade-in duration-200"
-                )} />
-              )}
-
-              <div ref={categoryGridRef} className="flex flex-wrap gap-2 content-start relative z-10 justify-between">
-                {localCategories.map((category, index) => {
-                  const isVisible = index < localVisibleCount;
-                  const isDragging = draggedIndex === index;
-                  const isDragOver = dragOverIndex === index;
-
-                  return (
-                    <div
-                      key={category.id}
-                      ref={(el) => {
-                        if (el) categoryItemRefs.current.set(index, el);
-                      }}
-                      draggable={!isTouchDragging}
-                      onDragStart={(e) => {
-                        e.dataTransfer.effectAllowed = 'move';
-                        e.dataTransfer.setData('text/plain', index.toString());
-                        handleDragStart(index);
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = 'move';
-                        handleDragOver(e, index);
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-                        if (fromIndex !== index && !isNaN(fromIndex)) {
-                          const newCategories = [...localCategories];
-                          const [removed] = newCategories.splice(fromIndex, 1);
-                          newCategories.splice(index, 0, removed);
-                          setLocalCategories(newCategories);
-                          setHasChanges(true);
-                        }
-                        setDraggedIndex(null);
-                        setDragOverIndex(null);
-                      }}
-                      onDragEnd={handleDragEnd}
-                      onTouchStart={(e) => handleTouchStart(e, index)}
-                      className={cn(
-                        'group relative flex flex-col items-center gap-1 p-2 rounded-xl',
-                        'w-[70px] select-none',
-                        'border-2 transition-all',
-                        // Delete mode styling
-                        isDeleteMode
-                          ? cn(
-                            'cursor-pointer hover:border-destructive/50 hover:bg-destructive/5',
-                            'hover:shadow-lg hover:shadow-destructive/10',
-                            'animate-in fade-in duration-200'
-                          )
-                          : 'cursor-grab active:cursor-grabbing hover:shadow-md',
-                        // Touch dragging - disable pointer events on all items except the source
-                        !isDeleteMode && isTouchDragging && draggedIndex !== null && 'touch-none pointer-events-none',
-                        // Dragging item - make it semi-transparent (ghost follows finger)
-                        !isDeleteMode && isDragging && cn(
-                          'opacity-30 scale-95',
-                          transactionType === 'expense'
-                            ? 'border-expense/50 bg-expense/5'
-                            : 'border-income/50 bg-income/5'
-                        ),
-                        // Drop target - highlight with animation
-                        !isDeleteMode && isDragOver && cn(
-                          'border-dashed scale-110 animate-pulse',
-                          transactionType === 'expense'
-                            ? 'border-expense bg-expense/20 shadow-lg shadow-expense/20'
-                            : 'border-income bg-income/20 shadow-lg shadow-income/20'
-                        ),
-                        // Normal state
-                        !isDragging && !isDragOver && (
-                          isVisible
-                            ? 'border-border/50 bg-card hover:border-foreground/30 hover:bg-accent/30 duration-200'
-                            : 'border-transparent bg-muted/20 opacity-50 duration-200'
+                <button
+                  onClick={() => setSettingsTab('notes')}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all',
+                    settingsTab === 'notes'
+                      ? cn(
+                          'bg-card shadow-sm',
+                          transactionType === 'expense' ? 'text-expense' : 'text-income'
                         )
-                      )}
-                    >
-                      {/* Order Badge */}
-                      <div
-                        className={cn(
-                          'absolute -top-1.5 -left-1.5 size-4 rounded-full flex items-center justify-center',
-                          'text-[10px] font-bold shadow-sm',
-                          isVisible
-                            ? transactionType === 'expense'
-                              ? 'bg-expense text-white'
-                              : 'bg-income text-white'
-                            : 'bg-muted text-muted-foreground'
-                        )}
-                      >
-                        {index + 1}
-                      </div>
-
-                      {/* Delete Button - visible in delete mode */}
-                      {isDeleteMode ? (
-                        <button
-                          onClick={(e) => handleDeleteClick(category, e)}
-                          className={cn(
-                            'absolute -top-2 -right-1 z-20',
-                            'flex size-6 items-center justify-center rounded-full',
-                            'bg-red-600 text-white shadow-lg shadow-destructive/30',
-                            'transition-all duration-200',
-                            'hover:scale-110 hover:shadow-xl hover:shadow-destructive/40',
-                            'active:scale-95',
-                            'animate-in zoom-in-50 duration-200'
-                          )}
-                        >
-                          <X className="size-3.5" strokeWidth={3} />
-                        </button>
-                      ) : (
-                        /* Drag Handle Icon - visible when not in delete mode */
-                        <div className={cn(
-                          "absolute top-1 right-1 transition-all duration-200",
-                          "opacity-40 group-hover:opacity-100",
-                          isDragOver && "opacity-100 scale-110"
-                        )}>
-                          <GripVertical className={cn(
-                            "size-3",
-                            isDragOver
-                              ? transactionType === 'expense' ? 'text-expense' : 'text-income'
-                              : 'text-muted-foreground'
-                          )} />
-                        </div>
-                      )}
-
-                      {/* Category Icon */}
-                      <div
-                        className={cn(
-                          'flex size-10 items-center justify-center rounded-xl text-3xl font-bold',
-                          'transition-all duration-200',
-                          isVisible
-                            ? cn(
-                              'shadow-sm',
-                              transactionType === 'expense'
-                                ? 'bg-expense/20 text-expense'
-                                : 'bg-income/20 text-income'
-                            )
-                            : 'bg-muted text-muted-foreground'
-                        )}
-                      >
-                        {category.icon || category.name.charAt(0)}
-                      </div>
-
-                      {/* Category Name */}
-                      <span
-                        className={cn(
-                          'text-[9px] font-medium text-center truncate w-full',
-                          isVisible ? 'text-foreground' : 'text-muted-foreground'
-                        )}
-                      >
-                        {category.name}
-                      </span>
-
-                      {/* Visibility Indicator */}
-                      {!isVisible && (
-                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2">
-                          <EyeOff className="size-3 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <FileText className="size-3.5" />
+                  จัดการบันทึก
+                </button>
               </div>
             </div>
 
-            {/* Add Category Section */}
-            <div className="px-3 py-2 border-t border-border/50 bg-muted/10">
-              {showAddForm ? (
-                <div className="space-y-2 animate-in slide-in-from-bottom-2 duration-200">
-                  <div className="flex items-center gap-1.5">
-                    <Tag
-                      className={cn(
-                        'size-3.5',
-                        transactionType === 'expense' ? 'text-expense' : 'text-income'
-                      )}
-                    />
-                    <span className="text-xs font-medium">เพิ่มหมวดหมู่ใหม่ และเลือกไอคอน</span>
-                  </div>
-                  <div className="flex gap-2">
-                    {/* Icon Selector Button */}
-                    <button
-                      type="button"
-                      onClick={() => setShowIconPicker(!showIconPicker)}
-                      className={cn(
-                        'relative flex size-10 items-center justify-center rounded-xl shrink-0',
-                        'border-2 transition-all duration-200 cursor-pointer',
-                        'text-base group',
-                        'hover:scale-105 active:scale-95',
-                        showIconPicker
-                          ? transactionType === 'expense'
-                            ? 'border-expense bg-expense/10 shadow-sm shadow-expense/20'
-                            : 'border-income bg-income/10 shadow-sm shadow-income/20'
-                          : 'border-border hover:border-primary/50 bg-muted/50 hover:bg-muted'
-                      )}
-                      title="คลิกเพื่อเลือกไอคอน"
-                    >
-                      <span className="text-base">
-                        {newCategoryIcon || (newCategoryName ? newCategoryName.charAt(0).toUpperCase() : '📦')}
-                      </span>
-                      {/* Edit indicator */}
-                      <div className={cn(
-                        'absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full',
-                        'flex items-center justify-center',
-                        'border-2 border-background',
-                        'transition-all duration-200',
-                        showIconPicker
-                          ? transactionType === 'expense'
-                            ? 'bg-expense'
-                            : 'bg-income'
-                          : 'bg-primary/60 group-hover:bg-primary'
-                      )}>
-                        {showIconPicker ? (
-                          <ChevronUp className="size-2 text-white" />
-                        ) : (
-                          <ChevronDown className="size-2 text-white" />
-                        )}
-                      </div>
-                    </button>
-
-                    <div className="relative flex-1">
-                      <Input
-                        ref={inputRef}
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && newCategoryName.trim()) {
-                            handleAddCategory();
-                          }
-                          if (e.key === 'Escape') {
-                            setShowAddForm(false);
-                            setNewCategoryName('');
-                            setNewCategoryIcon(null);
-                            setShowIconPicker(false);
-                          }
-                        }}
-                        placeholder="ชื่อหมวดหมู่..."
-                        className={cn(
-                          'h-10 rounded-xl border-2 pl-3 pr-3 text-sm',
-                          transactionType === 'expense'
-                            ? 'focus:border-expense'
-                            : 'focus:border-income'
-                        )}
-                        maxLength={30}
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10 rounded-xl hover:bg-destructive/10 hover:text-destructive shrink-0"
-                      onClick={() => {
-                        setShowAddForm(false);
-                        setNewCategoryName('');
-                        setNewCategoryIcon(null);
-                        setShowIconPicker(false);
-                      }}
-                    >
-                      <X className="size-4" />
-                    </Button>
-                    <Button
-                      disabled={!newCategoryName.trim()}
-                      onClick={handleAddCategory}
-                      className={cn(
-                        'h-10 w-10 rounded-xl text-white shrink-0',
-                        transactionType === 'expense'
-                          ? 'bg-expense hover:bg-expense/90 disabled:bg-expense/40'
-                          : 'bg-income hover:bg-income/90 disabled:bg-income/40'
-                      )}
-                    >
-                      <Check className="size-4" />
-                    </Button>
-                  </div>
-
-                  {/* Icon Picker - Grouped */}
-                  {showIconPicker && (
+            {/* Tab: Notes Management */}
+            {settingsTab === 'notes' && (
+              <div className="flex-1 overflow-y-auto px-3 pb-5">
+                {categoriesForNotes.filter((c) => (c.notes || []).length > 0 || addingNoteCategoryId === c.id).length === 0 && addingNoteCategoryId === null ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
                     <div className={cn(
-                      'rounded-2xl border border-border/30 bg-linear-to-b from-background to-muted/20',
-                      'max-h-[280px] overflow-hidden',
-                      'animate-in slide-in-from-top-2 duration-300',
-                      'shadow-lg shadow-black/5'
+                      'flex size-14 items-center justify-center rounded-2xl mb-3',
+                      transactionType === 'expense' ? 'bg-expense/10' : 'bg-income/10'
                     )}>
-                      {/* Group Tabs - Horizontal Scroll */}
-                      <div className="flex gap-1 p-2 overflow-x-auto scrollbar-hide border-b border-border/30 bg-muted/30">
-                        {iconGroups.map((group) => (
-                          <button
-                            key={group.id}
-                            type="button"
-                            onClick={() => setExpandedGroup(expandedGroup === group.id ? null : group.id)}
-                            className={cn(
-                              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shrink-0',
-                              'text-xs font-medium transition-all duration-200',
-                              'hover:scale-105 active:scale-95',
-                              expandedGroup === group.id
-                                ? 'text-white shadow-md'
-                                : 'bg-background/80 text-muted-foreground hover:text-foreground hover:bg-background'
-                            )}
-                            style={{
-                              backgroundColor: expandedGroup === group.id ? group.color : undefined,
-                              boxShadow: expandedGroup === group.id ? `0 4px 12px ${group.color}40` : undefined,
-                            }}
-                          >
-                            <span className="text-sm">{group.emoji}</span>
-                            <span className={cn(
-                              'transition-all duration-200',
-                             'max-w-[80px] opacity-100' 
-                            )}>
-                              {group.name}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
+                      <FileText className={cn(
+                        'size-7',
+                        transactionType === 'expense' ? 'text-expense/50' : 'text-income/50'
+                      )} />
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground">ยังไม่มีบันทึก</p>
+                    <p className="text-[11px] text-muted-foreground/70 mt-1">
+                      บันทึกจะถูกเก็บอัตโนมัติเมื่อบันทึกรายการ
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {categoriesForNotes.map((category) => {
+                      const notes = category.notes || [];
+                      if (notes.length === 0 && addingNoteCategoryId !== category.id) return null;
 
-                      {/* Icons Grid */}
-                      <div className="p-2 max-h-[200px] overflow-y-auto">
-                        {expandedGroup ? (
-                          // Show selected group's icons
-                          <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
-                            {iconGroups
-                              .filter(g => g.id === expandedGroup)
-                              .map((group) => (
-                                <div key={group.id}>
-                                  <div className="grid grid-cols-6 gap-1.5">
-                                    {group.icons.map((icon, idx) => (
-                                      <button
-                                        key={idx}
-                                        type="button"
-                                        onClick={() => {
-                                          setNewCategoryIcon(icon);
-                                          setShowIconPicker(false);
-                                          setExpandedGroup(null);
-                                        }}
-                                        className={cn(
-                                          'flex size-11 items-center justify-center rounded-xl text-3xl',
-                                          'transition-all duration-150',
-                                          'hover:scale-110 active:scale-95',
-                                          newCategoryIcon === icon
-                                            ? 'ring-2 shadow-md'
-                                            : 'bg-muted/40 hover:bg-muted'
-                                        )}
-                                        style={{
-                                          backgroundColor: newCategoryIcon === icon ? `${group.color}20` : undefined,
-                                          boxShadow: newCategoryIcon === icon ? `0 2px 8px ${group.color}30` : undefined,
-                                          // @ts-expect-error CSS custom property for ring color
-                                          '--tw-ring-color': newCategoryIcon === icon ? group.color : undefined,
-                                        }}
-                                      >
-                                        {icon}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
-                          </div>
-                        ) : (
-                          // Show all groups preview
-                          <div className="space-y-3">
-                            {iconGroups.map((group) => (
+                      return (
+                        <div
+                          key={category.id}
+                          className="rounded-xl border border-border/50 bg-card overflow-hidden"
+                        >
+                          {/* Category Header */}
+                          <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b border-border/30">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{category.icon || category.name.charAt(0)}</span>
+                              <span className="text-xs font-semibold text-foreground">{category.name}</span>
+                              <span className="text-[10px] text-muted-foreground">
+                                ({notes.length})
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {/* Add Note Button */}
                               <button
-                                key={group.id}
-                                type="button"
-                                onClick={() => setExpandedGroup(group.id)}
+                                onClick={() => {
+                                  setAddingNoteCategoryId(
+                                    addingNoteCategoryId === category.id ? null : category.id
+                                  );
+                                  setNewNoteValue('');
+                                }}
                                 className={cn(
-                                  'w-full flex items-center gap-3 p-2 rounded-xl',
-                                  'bg-muted/30 hover:bg-muted/50',
-                                  'transition-all duration-200',
-                                  'hover:scale-[1.01] active:scale-[0.99]',
-                                  'group'
+                                  'flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all',
+                                  'hover:scale-105 active:scale-95',
+                                  addingNoteCategoryId === category.id
+                                    ? transactionType === 'expense'
+                                      ? 'bg-expense/15 text-expense'
+                                      : 'bg-income/15 text-income'
+                                    : 'bg-muted/50 text-muted-foreground hover:text-foreground'
                                 )}
                               >
-                                {/* Group Icon */}
-                                <div
-                                  className="flex size-9 items-center justify-center rounded-lg text-lg shrink-0 shadow-sm"
-                                  style={{ backgroundColor: `${group.color}20` }}
-                                >
-                                  {group.emoji}
-                                </div>
-
-                                {/* Group Name & Preview Icons */}
-                                <div className="flex-1 flex items-center justify-between min-w-0">
-                                  <span className="text-xs font-medium text-foreground">{group.name}</span>
-                                  <div className="flex items-center gap-0.5">
-                                    {group.icons.slice(0, 5).map((icon, idx) => (
-                                      <span
-                                        key={idx}
-                                        className="text-sm opacity-60 group-hover:opacity-100 transition-opacity"
-                                        style={{ animationDelay: `${idx * 30}ms` }}
-                                      >
-                                        {icon}
-                                      </span>
-                                    ))}
-                                    <span className="text-[10px] text-muted-foreground ml-1">
-                                      +{group.icons.length - 5}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Arrow */}
-                                <ChevronDown className="size-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                                <Plus className="size-3" />
+                                เพิ่ม
                               </button>
-                            ))}
+                              {/* Clear All Notes Button */}
+                              {notes.length > 0 && (
+                                <button
+                                  onClick={async () => {
+                                    for (const n of notes) {
+                                      await removeNoteFromCategory(category.id, n);
+                                    }
+                                  }}
+                                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-destructive/70 hover:text-destructive hover:bg-destructive/10 transition-all active:scale-95"
+                                >
+                                  <Trash2 className="size-3" />
+                                  ลบทั้งหมด
+                                </button>
+                              )}
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowAddForm(true)}
-                  className={cn(
-                    'w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl',
-                    'border-2 border-dashed transition-all duration-200',
-                    'text-xs font-medium',
-                    'hover:scale-[1.01] active:scale-[0.99]',
-                    transactionType === 'expense'
-                      ? 'border-expense/30 text-expense hover:border-expense hover:bg-expense/5'
-                      : 'border-income/30 text-income hover:border-income hover:bg-income/5'
-                  )}
-                >
-                  <Plus className="size-3.5" />
-                  เพิ่มหมวดหมู่ใหม่
-                </button>
-              )}
-            </div>
 
-            {/* Delete Confirmation Dialog */}
-            {categoryToDelete && (
-              <div
-                className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md animate-in fade-in duration-200 rounded-t-[2rem] sm:rounded-[2rem]"
-                onClick={handleCancelDelete}
-              >
-                <div
-                  className="mx-6 w-full max-w-xs overflow-hidden rounded-3xl bg-card shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
-                  onClick={(e) => e.stopPropagation()}
-                >
+                          {/* Add Note Input */}
+                          {addingNoteCategoryId === category.id && (
+                            <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border/30 bg-muted/10">
+                              <Input
+                                value={newNoteValue}
+                                onChange={(e) => setNewNoteValue(e.target.value)}
+                                onKeyDown={async (e) => {
+                                  if (e.key === 'Enter' && newNoteValue.trim()) {
+                                    await addNoteToCategory(category.id, newNoteValue.trim());
+                                    setNewNoteValue('');
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setAddingNoteCategoryId(null);
+                                    setNewNoteValue('');
+                                  }
+                                }}
+                                placeholder="พิมพ์บันทึกใหม่..."
+                                className="h-8 text-[11px] flex-1"
+                                autoFocus
+                              />
+                              <button
+                                onClick={async () => {
+                                  if (newNoteValue.trim()) {
+                                    await addNoteToCategory(category.id, newNoteValue.trim());
+                                    setNewNoteValue('');
+                                  }
+                                }}
+                                disabled={!newNoteValue.trim()}
+                                className={cn(
+                                  'flex size-8 items-center justify-center rounded-lg shrink-0 transition-all',
+                                  'disabled:opacity-30',
+                                  transactionType === 'expense'
+                                    ? 'bg-expense text-white hover:bg-expense/90'
+                                    : 'bg-income text-white hover:bg-income/90'
+                                )}
+                              >
+                                <Check className="size-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setAddingNoteCategoryId(null);
+                                  setNewNoteValue('');
+                                }}
+                                className="flex size-8 items-center justify-center rounded-lg shrink-0 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                              >
+                                <X className="size-3.5" />
+                              </button>
+                            </div>
+                          )}
 
-                  <div className="p-5">
-                    {/* Icon & Title */}
-                    <div className="flex flex-col items-center text-center mb-4">
-                      <div className="relative mb-3">
-                        <div className="absolute inset-0 bg-destructive/20 rounded-full blur-xl animate-pulse" />
-                        <div className="relative flex size-16 items-center justify-center rounded-full bg-destructive/15 ring-4 ring-destructive/10">
-                          <Trash2 className="size-7 text-destructive" />
+                          {/* Notes List */}
+                          {notes.length > 0 && (
+                            <div className="divide-y divide-border/30">
+                              {notes.map((noteItem, noteIdx) => {
+                                const isEditing =
+                                  editingNoteCategory === category.id && editingNoteIndex === noteIdx;
+
+                                return (
+                                  <div
+                                    key={`${noteItem}-${noteIdx}`}
+                                    className="flex items-center gap-2 px-3 py-1.5 group hover:bg-muted/20 transition-colors"
+                                  >
+                                    {isEditing ? (
+                                      /* Edit Mode */
+                                      <>
+                                        <Input
+                                          value={editingNoteValue}
+                                          onChange={(e) => setEditingNoteValue(e.target.value)}
+                                          onKeyDown={async (e) => {
+                                            if (e.key === 'Enter' && editingNoteValue.trim()) {
+                                              await removeNoteFromCategory(category.id, noteItem);
+                                              await addNoteToCategory(category.id, editingNoteValue.trim());
+                                              setEditingNoteCategory(null);
+                                              setEditingNoteIndex(null);
+                                              setEditingNoteValue('');
+                                            }
+                                            if (e.key === 'Escape') {
+                                              setEditingNoteCategory(null);
+                                              setEditingNoteIndex(null);
+                                              setEditingNoteValue('');
+                                            }
+                                          }}
+                                          className="h-7 text-[11px] flex-1"
+                                          autoFocus
+                                        />
+                                        <button
+                                          onClick={async () => {
+                                            if (editingNoteValue.trim()) {
+                                              await removeNoteFromCategory(category.id, noteItem);
+                                              await addNoteToCategory(category.id, editingNoteValue.trim());
+                                              setEditingNoteCategory(null);
+                                              setEditingNoteIndex(null);
+                                              setEditingNoteValue('');
+                                            }
+                                          }}
+                                          className={cn(
+                                            'flex size-7 items-center justify-center rounded-md shrink-0',
+                                            transactionType === 'expense'
+                                              ? 'bg-expense text-white'
+                                              : 'bg-income text-white'
+                                          )}
+                                        >
+                                          <Check className="size-3" />
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            setEditingNoteCategory(null);
+                                            setEditingNoteIndex(null);
+                                            setEditingNoteValue('');
+                                          }}
+                                          className="flex size-7 items-center justify-center rounded-md shrink-0 hover:bg-muted text-muted-foreground"
+                                        >
+                                          <X className="size-3" />
+                                        </button>
+                                      </>
+                                    ) : (
+                                      /* Display Mode */
+                                      <>
+                                        <span className="flex-1 text-[11px] text-foreground truncate">
+                                          {noteItem}
+                                        </span>
+                                        <div className="flex items-center gap-0.5">
+                                          <button
+                                            onClick={() => {
+                                              setEditingNoteCategory(category.id);
+                                              setEditingNoteIndex(noteIdx);
+                                              setEditingNoteValue(noteItem);
+                                            }}
+                                            className="flex size-7 items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-all active:scale-90"
+                                          >
+                                            <Pencil className="size-3" />
+                                          </button>
+                                          <button
+                                            onClick={() => removeNoteFromCategory(category.id, noteItem)}
+                                            className="flex size-7 items-center justify-center rounded-md bg-destructive/5 hover:bg-destructive/15 text-destructive/60 hover:text-destructive transition-all active:scale-90"
+                                          >
+                                            <X className="size-3.5" strokeWidth={2.5} />
+                                          </button>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        คุณต้องการลบ
-                      </p>
-                      <h3 className="text-lg font-bold text-foreground mb-1">
-                        ลบหมวดหมู่?
-                      </h3>
-                    </div>
-
-                    {/* Category Preview */}
-                    <div className={cn(
-                      'flex items-center gap-3 p-3 rounded-lg mb-4',
-                      'bg-destructive/5 border-2 border-destructive/20'
-                    )}>
-                      <div className={cn(
-                        'flex size-12 items-center justify-center rounded-xl text-lg font-bold',
-                        transactionType === 'expense'
-                          ? 'bg-expense/20 text-expense'
-                          : 'bg-income/20 text-income'
-                      )}>
-                        {categoryToDelete.icon || categoryToDelete.name.charAt(0)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-foreground truncate">
-                          {categoryToDelete.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {transactionType === 'expense' ? 'หมวดหมู่รายจ่าย' : 'หมวดหมู่รายรับ'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Warning */}
-                    <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-4">
-                      <AlertTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-700 dark:text-amber-400">
-                        การลบหมวดหมู่นี้จะไม่สามารถกู้คืนได้ <br />
-                        ข้อมูลจะถูกลบออกจากระบบ
-                      </p>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1 h-11 rounded-xl border-2 font-semibold"
-                        onClick={handleCancelDelete}
-                      >
-                        ยกเลิก
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        className={cn(
-                          'flex-1 h-11 rounded-xl font-semibold',
-                          'bg-destructive hover:bg-destructive/90',
-                          'shadow-lg shadow-destructive/30'
-                        )}
-                        onClick={handleConfirmDelete}
-                      >
-                        <Trash2 className="size-4 mr-1.5" />
-                        ลบเลย
-                      </Button>
-                    </div>
+                      );
+                    })}
                   </div>
-                </div>
+                )}
               </div>
             )}
 
-            {/* Footer Actions */}
-            <div className="px-3 pb-5 pt-2 flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 h-11 rounded-xl border-2 font-semibold"
-                onClick={() => setShowSettings(false)}
-              >
-                ยกเลิก
-              </Button>
-              <Button
-                disabled={!hasChanges}
-                onClick={handleSave}
+            {/* Tab: Display Settings */}
+            {settingsTab === 'display' && <div>
+              {/* Visible Count Selector */}
+              <div className="px-5 pb-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Eye className="size-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium text-foreground">จำนวนที่แสดง</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {uniqueOptions.map((count) => (
+                    <button
+                      key={count}
+                      onClick={() => handleVisibleCountChange(count)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200',
+                        'border-2',
+                        localVisibleCount === count
+                          ? cn(
+                            'scale-105 shadow-md',
+                            transactionType === 'expense'
+                              ? 'border-expense bg-expense/15 text-expense shadow-expense/20'
+                              : 'border-income bg-income/15 text-income shadow-income/20'
+                          )
+                          : 'border-border bg-muted/30 text-muted-foreground hover:border-foreground/30'
+                      )}
+                    >
+                      {count === localCategories.length ? 'ทั้งหมด' : count}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mode Toggle - Delete / Reorder */}
+              <div className="px-5 pb-3">
+                <div className="flex items-center justify-between">
+                  {/* Delete Mode Toggle */}
+                  <button
+                    onClick={() => setIsDeleteMode(!isDeleteMode)}
+                    className={cn(
+                      'group flex items-center gap-2 px-3 py-2 rounded-xl',
+                      'text-xs font-medium transition-all duration-300',
+                      'border-2',
+                      isDeleteMode
+                        ? 'border-destructive/50 bg-destructive/10 text-destructive'
+                        : 'border-border/50 bg-muted/30 text-muted-foreground hover:border-destructive/30 hover:text-destructive'
+                    )}
+                  >
+                    {isDeleteMode ? (
+                      <ToggleRight className="size-4" />
+                    ) : (
+                      <ToggleLeft className="size-4" />
+                    )}
+                    <Trash2 className={cn(
+                      'size-3.5 transition-transform',
+                      isDeleteMode && 'animate-pulse'
+                    )} />
+                    <span>{isDeleteMode ? 'โหมดลบเปิดอยู่' : 'โหมดลบ'}</span>
+                  </button>
+
+                  {/* Instruction Text */}
+                  <span className={cn(
+                    "text-[10px] font-medium flex items-center gap-1 transition-colors",
+                    isDeleteMode
+                      ? 'text-destructive'
+                      : isTouchDragging
+                        ? transactionType === 'expense' ? 'text-expense' : 'text-income'
+                        : 'text-muted-foreground'
+                  )}>
+                    {isDeleteMode ? (
+                      <>
+                        <AlertTriangle className="size-2.5" />
+                        กดเพื่อลบ
+                      </>
+                    ) : isTouchDragging ? (
+                      <>
+                        <Move className="size-2.5 animate-pulse" />
+                        ลากไปวางตำแหน่งใหม่
+                      </>
+                    ) : (
+                      <>
+                        <GripVertical className="size-2.5" />
+                        กดค้างเพื่อลาก
+                      </>
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* Category Grid - Horizontal Rows with Scroll-Y */}
+              <div
                 className={cn(
-                  'flex-1 h-11 rounded-xl font-semibold text-white',
-                  'transition-all duration-200 disabled:opacity-50',
-                  hasChanges && 'shadow-lg',
-                  transactionType === 'expense'
-                    ? cn('bg-expense hover:bg-expense/90', hasChanges && 'shadow-expense/30')
-                    : cn('bg-income hover:bg-income/90', hasChanges && 'shadow-income/30')
+                  'flex-1 overflow-y-auto px-3 py-2 min-h-0 max-h-[40vh] relative',
+                  isTouchDragging && 'overflow-hidden'
                 )}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchCancel}
               >
-                <Sparkles className="size-3.5 mr-1.5" />
-                บันทึก
-              </Button>
-            </div>
+                {/* Touch drag overlay indicator */}
+                {isTouchDragging && (
+                  <div className={cn(
+                    "absolute inset-0 z-40 pointer-events-none",
+                    "bg-linear-to-b from-transparent via-transparent to-background/50",
+                    "animate-in fade-in duration-200"
+                  )} />
+                )}
+
+                <div ref={categoryGridRef} className="flex flex-wrap gap-2 content-start relative z-10 justify-between">
+                  {localCategories.map((category, index) => {
+                    const isVisible = index < localVisibleCount;
+                    const isDragging = draggedIndex === index;
+                    const isDragOver = dragOverIndex === index;
+
+                    return (
+                      <div
+                        key={category.id}
+                        ref={(el) => {
+                          if (el) categoryItemRefs.current.set(index, el);
+                        }}
+                        draggable={!isTouchDragging}
+                        onDragStart={(e) => {
+                          e.dataTransfer.effectAllowed = 'move';
+                          e.dataTransfer.setData('text/plain', index.toString());
+                          handleDragStart(index);
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          handleDragOver(e, index);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                          if (fromIndex !== index && !isNaN(fromIndex)) {
+                            const newCategories = [...localCategories];
+                            const [removed] = newCategories.splice(fromIndex, 1);
+                            newCategories.splice(index, 0, removed);
+                            setLocalCategories(newCategories);
+                            setHasChanges(true);
+                          }
+                          setDraggedIndex(null);
+                          setDragOverIndex(null);
+                        }}
+                        onDragEnd={handleDragEnd}
+                        onTouchStart={(e) => handleTouchStart(e, index)}
+                        className={cn(
+                          'group relative flex flex-col items-center gap-1 p-2 rounded-xl',
+                          'w-[70px] select-none',
+                          'border-2 transition-all',
+                          // Delete mode styling
+                          isDeleteMode
+                            ? cn(
+                              'cursor-pointer hover:border-destructive/50 hover:bg-destructive/5',
+                              'hover:shadow-lg hover:shadow-destructive/10',
+                              'animate-in fade-in duration-200'
+                            )
+                            : 'cursor-grab active:cursor-grabbing hover:shadow-md',
+                          // Touch dragging - disable pointer events on all items except the source
+                          !isDeleteMode && isTouchDragging && draggedIndex !== null && 'touch-none pointer-events-none',
+                          // Dragging item - make it semi-transparent (ghost follows finger)
+                          !isDeleteMode && isDragging && cn(
+                            'opacity-30 scale-95',
+                            transactionType === 'expense'
+                              ? 'border-expense/50 bg-expense/5'
+                              : 'border-income/50 bg-income/5'
+                          ),
+                          // Drop target - highlight with animation
+                          !isDeleteMode && isDragOver && cn(
+                            'border-dashed scale-110 animate-pulse',
+                            transactionType === 'expense'
+                              ? 'border-expense bg-expense/20 shadow-lg shadow-expense/20'
+                              : 'border-income bg-income/20 shadow-lg shadow-income/20'
+                          ),
+                          // Normal state
+                          !isDragging && !isDragOver && (
+                            isVisible
+                              ? 'border-border/50 bg-card hover:border-foreground/30 hover:bg-accent/30 duration-200'
+                              : 'border-transparent bg-muted/20 opacity-50 duration-200'
+                          )
+                        )}
+                      >
+                        {/* Order Badge */}
+                        <div
+                          className={cn(
+                            'absolute -top-1.5 -left-1.5 size-4 rounded-full flex items-center justify-center',
+                            'text-[10px] font-bold shadow-sm',
+                            isVisible
+                              ? transactionType === 'expense'
+                                ? 'bg-expense text-white'
+                                : 'bg-income text-white'
+                              : 'bg-muted text-muted-foreground'
+                          )}
+                        >
+                          {index + 1}
+                        </div>
+
+                        {/* Delete Button - visible in delete mode */}
+                        {isDeleteMode ? (
+                          <button
+                            onClick={(e) => handleDeleteClick(category, e)}
+                            className={cn(
+                              'absolute -top-2 -right-1 z-20',
+                              'flex size-6 items-center justify-center rounded-full',
+                              'bg-red-600 text-white shadow-lg shadow-destructive/30',
+                              'transition-all duration-200',
+                              'hover:scale-110 hover:shadow-xl hover:shadow-destructive/40',
+                              'active:scale-95',
+                              'animate-in zoom-in-50 duration-200'
+                            )}
+                          >
+                            <X className="size-3.5" strokeWidth={3} />
+                          </button>
+                        ) : (
+                          /* Drag Handle Icon - visible when not in delete mode */
+                          <div className={cn(
+                            "absolute top-1 right-1 transition-all duration-200",
+                            "opacity-40 group-hover:opacity-100",
+                            isDragOver && "opacity-100 scale-110"
+                          )}>
+                            <GripVertical className={cn(
+                              "size-3",
+                              isDragOver
+                                ? transactionType === 'expense' ? 'text-expense' : 'text-income'
+                                : 'text-muted-foreground'
+                            )} />
+                          </div>
+                        )}
+
+                        {/* Category Icon */}
+                        <div
+                          className={cn(
+                            'flex size-10 items-center justify-center rounded-xl text-3xl font-bold',
+                            'transition-all duration-200',
+                            isVisible
+                              ? cn(
+                                'shadow-sm',
+                                transactionType === 'expense'
+                                  ? 'bg-expense/20 text-expense'
+                                  : 'bg-income/20 text-income'
+                              )
+                              : 'bg-muted text-muted-foreground'
+                          )}
+                        >
+                          {category.icon || category.name.charAt(0)}
+                        </div>
+
+                        {/* Category Name */}
+                        <span
+                          className={cn(
+                            'text-[9px] font-medium text-center truncate w-full',
+                            isVisible ? 'text-foreground' : 'text-muted-foreground'
+                          )}
+                        >
+                          {category.name}
+                        </span>
+
+                        {/* Visibility Indicator */}
+                        {!isVisible && (
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2">
+                            <EyeOff className="size-3 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Add Category Section */}
+              <div className="px-3 py-2 border-t border-border/50 bg-muted/10">
+                {showAddForm ? (
+                  <div className="space-y-2 animate-in slide-in-from-bottom-2 duration-200">
+                    <div className="flex items-center gap-1.5">
+                      <Tag
+                        className={cn(
+                          'size-3.5',
+                          transactionType === 'expense' ? 'text-expense' : 'text-income'
+                        )}
+                      />
+                      <span className="text-xs font-medium">เพิ่มหมวดหมู่ใหม่ และเลือกไอคอน</span>
+                    </div>
+                    <div className="flex gap-2">
+                      {/* Icon Selector Button */}
+                      <button
+                        type="button"
+                        onClick={() => setShowIconPicker(!showIconPicker)}
+                        className={cn(
+                          'relative flex size-10 items-center justify-center rounded-xl shrink-0',
+                          'border-2 transition-all duration-200 cursor-pointer',
+                          'text-base group',
+                          'hover:scale-105 active:scale-95',
+                          showIconPicker
+                            ? transactionType === 'expense'
+                              ? 'border-expense bg-expense/10 shadow-sm shadow-expense/20'
+                              : 'border-income bg-income/10 shadow-sm shadow-income/20'
+                            : 'border-border hover:border-primary/50 bg-muted/50 hover:bg-muted'
+                        )}
+                        title="คลิกเพื่อเลือกไอคอน"
+                      >
+                        <span className="text-base">
+                          {newCategoryIcon || (newCategoryName ? newCategoryName.charAt(0).toUpperCase() : '📦')}
+                        </span>
+                        {/* Edit indicator */}
+                        <div className={cn(
+                          'absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full',
+                          'flex items-center justify-center',
+                          'border-2 border-background',
+                          'transition-all duration-200',
+                          showIconPicker
+                            ? transactionType === 'expense'
+                              ? 'bg-expense'
+                              : 'bg-income'
+                            : 'bg-primary/60 group-hover:bg-primary'
+                        )}>
+                          {showIconPicker ? (
+                            <ChevronUp className="size-2 text-white" />
+                          ) : (
+                            <ChevronDown className="size-2 text-white" />
+                          )}
+                        </div>
+                      </button>
+
+                      <div className="relative flex-1">
+                        <Input
+                          ref={inputRef}
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newCategoryName.trim()) {
+                              handleAddCategory();
+                            }
+                            if (e.key === 'Escape') {
+                              setShowAddForm(false);
+                              setNewCategoryName('');
+                              setNewCategoryIcon(null);
+                              setShowIconPicker(false);
+                            }
+                          }}
+                          placeholder="ชื่อหมวดหมู่..."
+                          className={cn(
+                            'h-10 rounded-xl border-2 pl-3 pr-3 text-sm',
+                            transactionType === 'expense'
+                              ? 'focus:border-expense'
+                              : 'focus:border-income'
+                          )}
+                          maxLength={30}
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 rounded-xl hover:bg-destructive/10 hover:text-destructive shrink-0"
+                        onClick={() => {
+                          setShowAddForm(false);
+                          setNewCategoryName('');
+                          setNewCategoryIcon(null);
+                          setShowIconPicker(false);
+                        }}
+                      >
+                        <X className="size-4" />
+                      </Button>
+                      <Button
+                        disabled={!newCategoryName.trim()}
+                        onClick={handleAddCategory}
+                        className={cn(
+                          'h-10 w-10 rounded-xl text-white shrink-0',
+                          transactionType === 'expense'
+                            ? 'bg-expense hover:bg-expense/90 disabled:bg-expense/40'
+                            : 'bg-income hover:bg-income/90 disabled:bg-income/40'
+                        )}
+                      >
+                        <Check className="size-4" />
+                      </Button>
+                    </div>
+
+                    {/* Icon Picker - Grouped */}
+                    {showIconPicker && (
+                      <div className={cn(
+                        'rounded-2xl border border-border/30 bg-linear-to-b from-background to-muted/20',
+                        'max-h-[280px] overflow-hidden',
+                        'animate-in slide-in-from-top-2 duration-300',
+                        'shadow-lg shadow-black/5'
+                      )}>
+                        {/* Group Tabs - Horizontal Scroll */}
+                        <div className="flex gap-1 p-2 overflow-x-auto scrollbar-hide border-b border-border/30 bg-muted/30">
+                          {iconGroups.map((group) => (
+                            <button
+                              key={group.id}
+                              type="button"
+                              onClick={() => setExpandedGroup(expandedGroup === group.id ? null : group.id)}
+                              className={cn(
+                                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shrink-0',
+                                'text-xs font-medium transition-all duration-200',
+                                'hover:scale-105 active:scale-95',
+                                expandedGroup === group.id
+                                  ? 'text-white shadow-md'
+                                  : 'bg-background/80 text-muted-foreground hover:text-foreground hover:bg-background'
+                              )}
+                              style={{
+                                backgroundColor: expandedGroup === group.id ? group.color : undefined,
+                                boxShadow: expandedGroup === group.id ? `0 4px 12px ${group.color}40` : undefined,
+                              }}
+                            >
+                              <span className="text-sm">{group.emoji}</span>
+                              <span className={cn(
+                                'transition-all duration-200',
+                                'max-w-[80px] opacity-100'
+                              )}>
+                                {group.name}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Icons Grid */}
+                        <div className="p-2 max-h-[200px] overflow-y-auto">
+                          {expandedGroup ? (
+                            // Show selected group's icons
+                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+                              {iconGroups
+                                .filter(g => g.id === expandedGroup)
+                                .map((group) => (
+                                  <div key={group.id}>
+                                    <div className="grid grid-cols-6 gap-1.5">
+                                      {group.icons.map((icon, idx) => (
+                                        <button
+                                          key={idx}
+                                          type="button"
+                                          onClick={() => {
+                                            setNewCategoryIcon(icon);
+                                            setShowIconPicker(false);
+                                            setExpandedGroup(null);
+                                          }}
+                                          className={cn(
+                                            'flex size-11 items-center justify-center rounded-xl text-3xl',
+                                            'transition-all duration-150',
+                                            'hover:scale-110 active:scale-95',
+                                            newCategoryIcon === icon
+                                              ? 'ring-2 shadow-md'
+                                              : 'bg-muted/40 hover:bg-muted'
+                                          )}
+                                          style={{
+                                            backgroundColor: newCategoryIcon === icon ? `${group.color}20` : undefined,
+                                            boxShadow: newCategoryIcon === icon ? `0 2px 8px ${group.color}30` : undefined,
+                                            // @ts-expect-error CSS custom property for ring color
+                                            '--tw-ring-color': newCategoryIcon === icon ? group.color : undefined,
+                                          }}
+                                        >
+                                          {icon}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          ) : (
+                            // Show all groups preview
+                            <div className="space-y-3">
+                              {iconGroups.map((group) => (
+                                <button
+                                  key={group.id}
+                                  type="button"
+                                  onClick={() => setExpandedGroup(group.id)}
+                                  className={cn(
+                                    'w-full flex items-center gap-3 p-2 rounded-xl',
+                                    'bg-muted/30 hover:bg-muted/50',
+                                    'transition-all duration-200',
+                                    'hover:scale-[1.01] active:scale-[0.99]',
+                                    'group'
+                                  )}
+                                >
+                                  {/* Group Icon */}
+                                  <div
+                                    className="flex size-9 items-center justify-center rounded-lg text-lg shrink-0 shadow-sm"
+                                    style={{ backgroundColor: `${group.color}20` }}
+                                  >
+                                    {group.emoji}
+                                  </div>
+
+                                  {/* Group Name & Preview Icons */}
+                                  <div className="flex-1 flex items-center justify-between min-w-0">
+                                    <span className="text-xs font-medium text-foreground">{group.name}</span>
+                                    <div className="flex items-center gap-0.5">
+                                      {group.icons.slice(0, 5).map((icon, idx) => (
+                                        <span
+                                          key={idx}
+                                          className="text-sm opacity-60 group-hover:opacity-100 transition-opacity"
+                                          style={{ animationDelay: `${idx * 30}ms` }}
+                                        >
+                                          {icon}
+                                        </span>
+                                      ))}
+                                      <span className="text-[10px] text-muted-foreground ml-1">
+                                        +{group.icons.length - 5}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Arrow */}
+                                  <ChevronDown className="size-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowAddForm(true)}
+                    className={cn(
+                      'w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl',
+                      'border-2 border-dashed transition-all duration-200',
+                      'text-xs font-medium',
+                      'hover:scale-[1.01] active:scale-[0.99]',
+                      transactionType === 'expense'
+                        ? 'border-expense/30 text-expense hover:border-expense hover:bg-expense/5'
+                        : 'border-income/30 text-income hover:border-income hover:bg-income/5'
+                    )}
+                  >
+                    <Plus className="size-3.5" />
+                    เพิ่มหมวดหมู่ใหม่
+                  </button>
+                )}
+              </div>
+
+              {/* Delete Confirmation Dialog */}
+              {categoryToDelete && (
+                <div
+                  className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md animate-in fade-in duration-200 rounded-t-[2rem] sm:rounded-[2rem]"
+                  onClick={handleCancelDelete}
+                >
+                  <div
+                    className="mx-6 w-full max-w-xs overflow-hidden rounded-3xl bg-card shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+
+                    <div className="p-5">
+                      {/* Icon & Title */}
+                      <div className="flex flex-col items-center text-center mb-4">
+                        <div className="relative mb-3">
+                          <div className="absolute inset-0 bg-destructive/20 rounded-full blur-xl animate-pulse" />
+                          <div className="relative flex size-16 items-center justify-center rounded-full bg-destructive/15 ring-4 ring-destructive/10">
+                            <Trash2 className="size-7 text-destructive" />
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          คุณต้องการลบ
+                        </p>
+                        <h3 className="text-lg font-bold text-foreground mb-1">
+                          ลบหมวดหมู่?
+                        </h3>
+                      </div>
+
+                      {/* Category Preview */}
+                      <div className={cn(
+                        'flex items-center gap-3 p-3 rounded-lg mb-4',
+                        'bg-destructive/5 border-2 border-destructive/20'
+                      )}>
+                        <div className={cn(
+                          'flex size-12 items-center justify-center rounded-xl text-lg font-bold',
+                          transactionType === 'expense'
+                            ? 'bg-expense/20 text-expense'
+                            : 'bg-income/20 text-income'
+                        )}>
+                          {categoryToDelete.icon || categoryToDelete.name.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-foreground truncate">
+                            {categoryToDelete.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {transactionType === 'expense' ? 'หมวดหมู่รายจ่าย' : 'หมวดหมู่รายรับ'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Warning */}
+                      <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-4">
+                        <AlertTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                          การลบหมวดหมู่นี้จะไม่สามารถกู้คืนได้ <br />
+                          ข้อมูลจะถูกลบออกจากระบบ
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1 h-11 rounded-xl border-2 font-semibold"
+                          onClick={handleCancelDelete}
+                        >
+                          ยกเลิก
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          className={cn(
+                            'flex-1 h-11 rounded-xl font-semibold',
+                            'bg-destructive hover:bg-destructive/90',
+                            'shadow-lg shadow-destructive/30'
+                          )}
+                          onClick={handleConfirmDelete}
+                        >
+                          <Trash2 className="size-4 mr-1.5" />
+                          ลบเลย
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Footer Actions */}
+              <div className="px-3 pb-5 pt-2 flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-11 rounded-xl border-2 font-semibold"
+                  onClick={() => setShowSettings(false)}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  disabled={!hasChanges}
+                  onClick={handleSave}
+                  className={cn(
+                    'flex-1 h-11 rounded-xl font-semibold text-white',
+                    'transition-all duration-200 disabled:opacity-50',
+                    hasChanges && 'shadow-lg',
+                    transactionType === 'expense'
+                      ? cn('bg-expense hover:bg-expense/90', hasChanges && 'shadow-expense/30')
+                      : cn('bg-income hover:bg-income/90', hasChanges && 'shadow-income/30')
+                  )}
+                >
+                  <Sparkles className="size-3.5 mr-1.5" />
+                  บันทึก
+                </Button>
+              </div>
+            </div>}
+
           </div>
         </div>
       )}

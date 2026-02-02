@@ -388,7 +388,7 @@ function ReusedCategoryItem({
       {/* Category Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center gap-3 p-4 hover:bg-muted/30 transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-1.5 hover:bg-muted/30 transition-colors"
       >
         <div
           className="size-12 rounded-xl flex items-center justify-center text-xl shrink-0"
@@ -436,14 +436,14 @@ function ReusedCategoryItem({
         )}
       >
         <div className="overflow-hidden">
-          <div className="px-4 pb-4 space-y-2">
+          <div className="px-4 pb-2 space-y-2">
             {records.map((record, idx) => {
               const wallet = getWalletById(record.walletId);
               return (
                 <div
                   key={record.id}
                   className={cn(
-                    'flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/30',
+                    'flex items-center gap-3 px-3 py-1.5 rounded-xl bg-muted/30 border border-border/30',
                     'transition-all duration-200'
                   )}
                   style={{ animationDelay: `${idx * 30}ms` }}
