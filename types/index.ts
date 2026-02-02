@@ -43,6 +43,7 @@ export interface Category {
   order?: number; // For sorting categories
   icon?: string;
   color?: string;
+  notes?: string[]; // V5: Array of notes used with this category
 }
 
 export interface CategorySummary {

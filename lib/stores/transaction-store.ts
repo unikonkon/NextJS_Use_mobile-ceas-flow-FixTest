@@ -375,6 +375,15 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         createdAt: newTransaction.createdAt,
         updatedAt: newTransaction.updatedAt,
       });
+
+      // V5: Add note to category if present
+      if (newTransaction.note && newTransaction.note.trim() !== '') {
+        const categoryStoreForNotes = useCategoryStore.getState();
+        await categoryStoreForNotes.addNoteToCategory(
+          newTransaction.categoryId,
+          newTransaction.note
+        );
+      }
     } catch (error) {
       console.error('Failed to persist transaction:', error);
     }
@@ -448,6 +457,19 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
           updatedAt: updatedTransaction.updatedAt,
         })
       );
+
+      // V5: Add new note to category if note changed
+      if (
+        input.note &&
+        input.note.trim() !== '' &&
+        input.note !== existingTransaction.note
+      ) {
+        const categoryStoreForNotes = useCategoryStore.getState();
+        await categoryStoreForNotes.addNoteToCategory(
+          updatedTransaction.categoryId,
+          input.note
+        );
+      }
     } catch (error) {
       console.error('Failed to update transaction:', error);
     }

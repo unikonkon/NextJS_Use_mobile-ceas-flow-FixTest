@@ -30,6 +30,11 @@ interface CategoryStore {
   getCategoryById: (id: string) => Category | undefined;
   getAllCategories: () => Category[];
   reorderCategories: (type: 'expense' | 'income', categories: Category[]) => Promise<void>;
+
+  // V5: Note Management
+  addNoteToCategory: (categoryId: string, note: string) => Promise<void>;
+  getNotesForCategory: (categoryId: string) => string[];
+  removeNoteFromCategory: (categoryId: string, note: string) => Promise<void>;
 }
 
 // ============================================
@@ -204,6 +209,110 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
       );
     } catch (error) {
       console.error('Failed to persist category order:', error);
+    }
+  },
+
+  // V5: Add note to category
+  addNoteToCategory: async (categoryId: string, note: string) => {
+    if (!note || note.trim() === '') return;
+
+    const trimmedNote = note.trim();
+    const { expenseCategories, incomeCategories } = get();
+
+    let category = expenseCategories.find((c) => c.id === categoryId);
+    let isExpense = true;
+
+    if (!category) {
+      category = incomeCategories.find((c) => c.id === categoryId);
+      isExpense = false;
+    }
+
+    if (!category) return;
+
+    const currentNotes = category.notes || [];
+
+    // Skip if note already exists
+    if (currentNotes.includes(trimmedNote)) return;
+
+    // Add note with FIFO limit of 50
+    const MAX_NOTES = 50;
+    let updatedNotes = [...currentNotes, trimmedNote];
+    if (updatedNotes.length > MAX_NOTES) {
+      updatedNotes = updatedNotes.slice(-MAX_NOTES);
+    }
+
+    const updatedCategory: Category = {
+      ...category,
+      notes: updatedNotes,
+    };
+
+    if (isExpense) {
+      set({
+        expenseCategories: expenseCategories.map((c) =>
+          c.id === categoryId ? updatedCategory : c
+        ),
+      });
+    } else {
+      set({
+        incomeCategories: incomeCategories.map((c) =>
+          c.id === categoryId ? updatedCategory : c
+        ),
+      });
+    }
+
+    try {
+      await db.categories.put(toStoredCategory(updatedCategory));
+    } catch (error) {
+      console.error('Failed to add note to category:', error);
+    }
+  },
+
+  // V5: Get notes for a category
+  getNotesForCategory: (categoryId: string) => {
+    const { expenseCategories, incomeCategories } = get();
+    const category =
+      expenseCategories.find((c) => c.id === categoryId) ||
+      incomeCategories.find((c) => c.id === categoryId);
+    return category?.notes || [];
+  },
+
+  // V5: Remove note from category
+  removeNoteFromCategory: async (categoryId: string, note: string) => {
+    const { expenseCategories, incomeCategories } = get();
+
+    let category = expenseCategories.find((c) => c.id === categoryId);
+    let isExpense = true;
+
+    if (!category) {
+      category = incomeCategories.find((c) => c.id === categoryId);
+      isExpense = false;
+    }
+
+    if (!category) return;
+
+    const updatedCategory: Category = {
+      ...category,
+      notes: (category.notes || []).filter((n) => n !== note),
+    };
+
+    if (isExpense) {
+      set({
+        expenseCategories: expenseCategories.map((c) =>
+          c.id === categoryId ? updatedCategory : c
+        ),
+      });
+    } else {
+      set({
+        incomeCategories: incomeCategories.map((c) =>
+          c.id === categoryId ? updatedCategory : c
+        ),
+      });
+    }
+
+    try {
+      await db.categories.put(toStoredCategory(updatedCategory));
+    } catch (error) {
+      console.error('Failed to remove note from category:', error);
     }
   },
 }));

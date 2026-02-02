@@ -26,6 +26,7 @@ export interface StoredCategory {
   type: 'expense' | 'income';
   order?: number; // For sorting categories
   icon?: string; // Custom icon selected by user
+  notes?: string[]; // V5: Array of notes used with this category
 }
 
 export interface StoredWallet {
@@ -124,6 +125,24 @@ export class AppDatabase extends Dexie {
       analysis: 'id, walletId, type, categoryId, amount, note, matchType, count, lastTransactionId, updatedAt',
       aiHistory: 'id, walletId, promptType, year, createdAt',
     });
+
+    // Version 6: Add notes array to categories
+    this.version(6)
+      .stores({
+        transactions: 'id, walletId, categoryId, type, date, createdAt',
+        categories: 'id, type, order',
+        wallets: 'id, type',
+        analysis: 'id, walletId, type, categoryId, amount, note, matchType, count, lastTransactionId, updatedAt',
+        aiHistory: 'id, walletId, promptType, year, createdAt',
+      })
+      .upgrade(async (tx) => {
+        // Migration: Add notes array to existing categories
+        await tx.table('categories').toCollection().modify((category: StoredCategory) => {
+          if (!category.notes) {
+            category.notes = [];
+          }
+        });
+      });
   }
 }
 
@@ -159,6 +178,7 @@ export function toStoredCategory(c: Category, index?: number): StoredCategory {
     type: c.type,
     order: c.order ?? index ?? 0,
     icon: c.icon,
+    notes: c.notes || [],
   };
 }
 
@@ -169,6 +189,7 @@ export function fromStoredCategory(s: StoredCategory): Category {
     type: s.type,
     order: s.order ?? 0,
     icon: s.icon,
+    notes: s.notes || [],
   };
 }
 

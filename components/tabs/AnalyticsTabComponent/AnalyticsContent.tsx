@@ -1749,7 +1749,7 @@ export function AnalyticsContent() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-foreground">รายละเอียดหมวดหมู่</h3>
+              <h3 className="font-semibold text-foreground">รายละเอียด</h3>
               {/* View Mode Badge */}
               <div
                 className={cn(
