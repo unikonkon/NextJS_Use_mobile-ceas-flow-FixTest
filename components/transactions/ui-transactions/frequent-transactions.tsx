@@ -40,14 +40,14 @@ function FrequentItem({ analysis, transactionType, onClick }: FrequentItemProps)
       )}
     >
       {/* Category Icon */}
-      <div
+      {/* <div
         className={cn(
           'flex size-7 items-center justify-center rounded-lg text-lg shrink-0',
           transactionType === 'expense' ? 'bg-expense/15 text-expense' : 'bg-income/15 text-income'
         )}
       >
         {category.icon || category.name.charAt(0)}
-      </div>
+      </div> */}
 
       {/* Content */}
       <div className="flex-1 min-w-0">
@@ -85,7 +85,7 @@ export function FrequentTransactions({
   walletId,
   transactionType,
   onSelect,
-  maxItems = 4,
+  maxItems = 6,
 }: FrequentTransactionsProps) {
   const { analysisRecords, isInitialized, loadAnalysis } = useAnalysisStore();
 
@@ -151,7 +151,7 @@ export function FrequentTransactions({
           <span className="text-xs font-medium text-foreground">รายการใช้ซ้ำบ่อย</span>
         </div> */}
 
-        <div className="p-2 space-y-3">
+        <div className="px-2 pb-2space-y-3">
           {/* Basic Matches Section */}
           {basicMatches.length > 0 && (
             <div>
@@ -170,7 +170,7 @@ export function FrequentTransactions({
                   {basicMatches.length}
                 </span>
               </div>
-              <div className="grid grid-cols-4 gap-1">
+              <div className="grid grid-cols-6 gap-1">
                 {basicMatches.map((analysis) => (
                   <FrequentItem
                     key={analysis.id}
@@ -201,7 +201,7 @@ export function FrequentTransactions({
                   {fullMatches.length}
                 </span>
               </div>
-              <div className="grid grid-cols-4 gap-1">
+              <div className="grid grid-cols-6 gap-1">
                 {fullMatches.map((analysis) => (
                   <FrequentItem
                     key={analysis.id}

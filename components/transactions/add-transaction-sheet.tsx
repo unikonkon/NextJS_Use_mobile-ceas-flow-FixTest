@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
@@ -67,6 +67,7 @@ export function AddTransactionSheet({
   const addCategory = useCategoryStore((s) => s.addCategory);
   const reorderCategories = useCategoryStore((s) => s.reorderCategories);
   const deleteCategory = useCategoryStore((s) => s.deleteCategory);
+  const getNotesForCategory = useCategoryStore((s) => s.getNotesForCategory);
 
   // Wallet stores - get selected wallet from transaction store
   const wallets = useWalletStore((s) => s.wallets);
@@ -100,7 +101,12 @@ export function AddTransactionSheet({
 
   // Calculator hook
   const calculator = useCalculator();
-  const currency = '฿';
+
+  // V5: Notes suggestions from selected category
+  const categoryNotes = useMemo(() => {
+    if (!selectedCategory) return [];
+    return getNotesForCategory(selectedCategory.id);
+  }, [selectedCategory, getNotesForCategory]);
 
   // Get current categories based on type
   const currentCategories = transactionType === 'income' ? incomeCategories : expenseCategories;
@@ -240,7 +246,7 @@ export function AddTransactionSheet({
           />
 
           {/* Amount Display - Split Layout Card */}
-          <div className="px-1 py-2">
+          <div className="px-1 pt-2 pb-0.5">
             <div
               className={cn(
                 "relative overflow-hidden rounded-xl transition-all duration-300",
@@ -335,12 +341,36 @@ export function AddTransactionSheet({
             </div>
           </div>
 
+          {/* Notes from category - horizontal scroll */}
+          {categoryNotes.length > 0 && (
+            <div className="px-1">
+              <div className="flex gap-1 overflow-x-auto scrollbar-hide py-0.5">
+                {categoryNotes.slice().reverse().map((noteItem) => (
+                  <button
+                    key={noteItem}
+                    type="button"
+                    onClick={() => setNote(noteItem)}
+                    className={cn(
+                      "shrink-0 px-3 py-1 rounded-full text-[11px] font-medium transition-all",
+                      "border active:scale-95",
+                      note === noteItem
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted/40 text-muted-foreground border-border/50 hover:bg-muted"
+                    )}
+                  >
+                    {noteItem}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Frequent Transactions - รายการใช้ซ้ำ */}
           <FrequentTransactions
             walletId={localWalletId}
             transactionType={transactionType}
             onSelect={handleFrequentSelect}
-            maxItems={4}
+            maxItems={6}
           />
 
           {/* Calculator Keypad */}
