@@ -503,7 +503,7 @@ export function CategoryScroll({
         ref={scrollRef}
         className={cn(
           'relative px-4 py-1.5 scroll-smooth',
-          'max-h-[175px] overflow-y-auto'
+          'max-h-[158px] overflow-y-auto'
         )}
       >
         <div className="flex flex-wrap gap-1 content-start justify-between">
@@ -515,7 +515,7 @@ export function CategoryScroll({
                 data-category-id={category.id}
                 onClick={() => onSelect(category)}
                 className={cn(
-                  'group relative flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl',
+                  'group relative flex flex-col items-center gap-1 px-2 py-1 rounded-xl',
                   'transition-all duration-300 w-[60px]',
                   'hover:bg-accent/50 active:scale-95',
                   isSelected &&
@@ -654,9 +654,9 @@ export function CategoryScroll({
                     'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all',
                     settingsTab === 'display'
                       ? cn(
-                          'bg-card shadow-sm',
-                          transactionType === 'expense' ? 'text-expense' : 'text-income'
-                        )
+                        'bg-card shadow-sm',
+                        transactionType === 'expense' ? 'text-expense' : 'text-income'
+                      )
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
@@ -669,9 +669,9 @@ export function CategoryScroll({
                     'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all',
                     settingsTab === 'notes'
                       ? cn(
-                          'bg-card shadow-sm',
-                          transactionType === 'expense' ? 'text-expense' : 'text-income'
-                        )
+                        'bg-card shadow-sm',
+                        transactionType === 'expense' ? 'text-expense' : 'text-income'
+                      )
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >

@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
@@ -55,13 +55,43 @@ export function AddTransactionSheet({
   // Use controlled state if provided, otherwise use internal state
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
-  const setOpen = isControlled ? (controlledOnOpenChange ?? (() => {})) : setInternalOpen;
+  const setOpen = isControlled ? (controlledOnOpenChange ?? (() => { })) : setInternalOpen;
   const [transactionType, setTransactionType] = useState<TransactionType>('expense');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [note, setNote] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isNoteInputFocused, setIsNoteInputFocused] = useState(false);
   const [walletPickerOpen, setWalletPickerOpen] = useState(false);
+  const noteContainerRef = useRef<HTMLDivElement>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // Track mobile keyboard via visualViewport
+  useEffect(() => {
+    if (!isNoteInputFocused) {
+      setKeyboardHeight(0);
+      return;
+    }
+
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const onResize = () => {
+      const h = window.innerHeight - vv.height;
+      setKeyboardHeight(h > 10 ? h : 0);
+    };
+
+    vv.addEventListener('resize', onResize);
+    onResize();
+
+    return () => vv.removeEventListener('resize', onResize);
+  }, [isNoteInputFocused]);
+
+  // Scroll note input into view when keyboard opens
+  useEffect(() => {
+    if (keyboardHeight > 0 && noteContainerRef.current) {
+      noteContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [keyboardHeight]);
 
   // Category store for adding new categories, reordering, and deleting
   const addCategory = useCategoryStore((s) => s.addCategory);
@@ -203,7 +233,11 @@ export function AddTransactionSheet({
       <SheetTrigger asChild>{trigger}</SheetTrigger>
       <SheetContent
         side="bottom"
-        className="min-h-[45vh] rounded-t-[2rem] px-0 pb-0 overflow-hidden border-t-0"
+        noAnimation
+        className={cn(
+          "max-h-[90vh] rounded-t-[2rem] px-0 pb-0 border-t-0",
+          isNoteInputFocused ? "overflow-y-auto" : "overflow-hidden"
+        )}
       >
         {/* Hidden title for accessibility */}
         <SheetTitle className="sr-only">เพิ่มรายการ</SheetTitle>
@@ -290,7 +324,10 @@ export function AddTransactionSheet({
                   </div>
 
                   {/* Note Input - Compact */}
-                  <div className="flex items-center gap-1.5 py-1 mt-1 rounded-lg bg-muted/30 transition-all focus-within:bg-muted/50 focus-within:ring-1 focus-within:ring-primary/30">
+                  <div
+                    ref={noteContainerRef}
+                    className="flex items-center gap-1.5 py-1 mt-1 rounded-lg bg-muted/30 transition-all focus-within:bg-muted/50 focus-within:ring-1 focus-within:ring-primary/30"
+                  >
                     <Input
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
@@ -387,6 +424,11 @@ export function AddTransactionSheet({
               onSubmit={handleSubmit}
               showSparkle={true}
             />
+          )}
+
+          {/* Spacer for keyboard */}
+          {keyboardHeight > 0 && (
+            <div style={{ height: keyboardHeight }} />
           )}
         </div>
 

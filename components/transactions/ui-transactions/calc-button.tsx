@@ -21,7 +21,7 @@ export function CalcButton({
     <button
       onClick={onClick}
       className={cn(
-        "flex h-12 items-center justify-center rounded-xl text-lg font-semibold transition-all duration-150",
+        "flex h-11 items-center justify-center rounded-xl text-lg font-semibold transition-all duration-150",
         "active:scale-95 active:bg-accent",
         variant === 'default' && "bg-card hover:bg-accent text-foreground",
         variant === 'secondary' && "bg-muted/60 hover:bg-muted text-muted-foreground",

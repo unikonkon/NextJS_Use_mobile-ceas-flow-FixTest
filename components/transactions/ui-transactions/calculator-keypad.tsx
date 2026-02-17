@@ -32,8 +32,8 @@ export function CalculatorKeypad({
   showSparkle = true,
 }: CalculatorKeypadProps) {
   return (
-    <div className="mt-auto bg-muted/30 px-3 pb-safe pt-3">
-      <div className="grid grid-cols-4 gap-1.5">
+    <div className="mt-auto bg-muted/30 px-3 pb-safe pt-1">
+      <div className="grid grid-cols-4 gap-1">
         {/* Row 1 */}
         <CalcButton label="C" onClick={onClear} variant="secondary" />
         <CalcButton
