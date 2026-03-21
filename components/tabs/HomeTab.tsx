@@ -3,12 +3,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Plus } from 'lucide-react';
 import { Header, PageContainer } from '@/components/layout';
-import { SummaryBar, TransactionList, EditTransactionSheet } from '@/components/transactions';
+import { SummaryBar, TransactionList, EditTransactionSheet, FrequentTransactions } from '@/components/transactions';
 import { MonthPicker, WalletSelector } from '@/components/common';
 import { AlertBanner } from '@/components/ui/alert-banner';
 import { cn } from '@/lib/utils';
 import { useTransactionStore, useCategoryStore, useWalletStore, useAlertSettingsStore } from '@/lib/stores';
-import { TransactionWithCategory } from '@/types';
+import { useSettingsStore } from '@/lib/stores/settings-store';
+import { TransactionWithCategory, TransactionInput } from '@/types';
 
 interface HomeTabProps {
   onCreateWallet?: () => void;
@@ -38,12 +39,16 @@ export function HomeTab({ onCreateWallet }: HomeTabProps) {
   const toastVisible = useTransactionStore((s) => s.toastVisible);
   const toastType = useTransactionStore((s) => s.toastType);
   const getTransactionById = useTransactionStore((s) => s.getTransactionById);
+  const addTransaction = useTransactionStore((s) => s.addTransaction);
   const updateTransaction = useTransactionStore((s) => s.updateTransaction);
   const deleteTransaction = useTransactionStore((s) => s.deleteTransaction);
 
   // Category store
   const expenseCategories = useCategoryStore((s) => s.expenseCategories);
   const incomeCategories = useCategoryStore((s) => s.incomeCategories);
+
+  // Settings store
+  const frequentOnHome = useSettingsStore((s) => s.frequentOnHome);
 
   // Alert settings store
   const isMonthlyTargetEnabled = useAlertSettingsStore((s) => s.isMonthlyTargetEnabled);
@@ -144,36 +149,38 @@ export function HomeTab({ onCreateWallet }: HomeTabProps) {
     }
   };
 
+  // Handle frequent transaction selection - add transaction directly
+  const handleFrequentSelect = (input: TransactionInput) => {
+    addTransaction(input);
+  };
+
   return (
     <>
-      <Header
-        // rightAction={
-        //   <div className="flex items-center gap-1">
-        //     <Button variant="ghost" size="icon-sm" className="rounded-full">
-        //       <Calendar className="size-5" />
-        //     </Button>
-        //   </div>
-        // }
-        leftAction={
+      <header className={cn(
+        'sticky top-0 z-40 w-full bg-background border-b border-border/50 pt-safe',
+      )}>
+        <div className="flex h-10 items-center justify-between px-4 bg-background">
           <WalletSelector
             wallets={wallets}
             selectedWalletId={selectedWalletId}
             walletBalances={walletBalances}
             onSelect={setSelectedWalletId}
           />
-        }
-      />
+
+          {/* Month Picker */}
+          <div className="">
+            <MonthPicker
+              value={selectedMonth}
+              onChange={setSelectedMonth}
+              selectedDay={selectedDay}
+              onDayChange={setSelectedDay}
+            />
+          </div>
+        </div>
+      </header>
+
 
       <PageContainer className="pt-2">
-        {/* Month Picker */}
-        <div className="mb-2">
-          <MonthPicker
-            value={selectedMonth}
-            onChange={setSelectedMonth}
-            selectedDay={selectedDay}
-            onDayChange={setSelectedDay}
-          />
-        </div>
 
         {/* Summary - Combined Wallet & Monthly Summary */}
         <SummaryBar
@@ -196,6 +203,23 @@ export function HomeTab({ onCreateWallet }: HomeTabProps) {
               />
             ))}
           </div>
+        )}
+        {/* Frequent Transactions - รายการใช้ซ้ำ */}
+        {frequentOnHome && (
+          <>
+            <FrequentTransactions
+              walletId={selectedWalletId}
+              transactionType="expense"
+              onSelect={handleFrequentSelect}
+              maxItems={6}
+            />
+            <FrequentTransactions
+              walletId={selectedWalletId}
+              transactionType="income"
+              onSelect={handleFrequentSelect}
+              maxItems={6}
+            />
+          </>
         )}
 
         {/* Transaction List */}

@@ -9,6 +9,7 @@ import { Category, TransactionType, CategoryType, Wallet as WalletType } from '@
 import { formatNumber } from '@/lib/utils/format';
 // import { AddCategoryModal } from '@/components/categories';
 import { useCategoryStore, useTransactionStore, useWalletStore } from '@/lib/stores';
+import { useSettingsStore } from '@/lib/stores/settings-store';
 import { WalletPickerModal } from './wallet-picker-modal';
 import {
   useCalculator,
@@ -98,6 +99,9 @@ export function AddTransactionSheet({
   const reorderCategories = useCategoryStore((s) => s.reorderCategories);
   const deleteCategory = useCategoryStore((s) => s.deleteCategory);
   const getNotesForCategory = useCategoryStore((s) => s.getNotesForCategory);
+
+  // Settings store
+  const frequentOnAddSheet = useSettingsStore((s) => s.frequentOnAddSheet);
 
   // Wallet stores - get selected wallet from transaction store
   const wallets = useWalletStore((s) => s.wallets);
@@ -403,12 +407,14 @@ export function AddTransactionSheet({
           )}
 
           {/* Frequent Transactions - รายการใช้ซ้ำ */}
-          <FrequentTransactions
-            walletId={localWalletId}
-            transactionType={transactionType}
-            onSelect={handleFrequentSelect}
-            maxItems={6}
-          />
+          {frequentOnAddSheet && (
+            <FrequentTransactions
+              walletId={localWalletId}
+              transactionType={transactionType}
+              onSelect={handleFrequentSelect}
+              maxItems={6}
+            />
+          )}
 
           {/* Calculator Keypad */}
           {!isNoteInputFocused && (

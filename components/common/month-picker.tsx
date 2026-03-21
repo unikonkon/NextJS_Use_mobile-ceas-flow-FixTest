@@ -173,6 +173,25 @@ export function MonthPicker({
     <div className={cn('relative', className)}>
       {/* Compact View */}
       <div className="flex items-center justify-center gap-1">
+
+        {/* Calendar Day Button */}
+        <button
+          onClick={openCalendarView}
+          className={cn(
+            'flex items-center gap-1 rounded-full px-2 py-1.5',
+            'transition-all duration-200',
+            'hover:bg-accent active:scale-95',
+            selectedDay && 'bg-primary/10 text-primary'
+          )}
+        >
+          <CalendarDays className="size-5.5" />
+          {selectedDay && (
+            <span className="text-xs font-semibold">
+              วันที่ {selectedDay.getDate()}
+            </span>
+          )}
+        </button>
+
         <Button
           variant="ghost"
           size="icon-sm"
@@ -193,24 +212,6 @@ export function MonthPicker({
         >
           <span className="text-sm">{fullMonthNames[currentMonth]}</span>
           <span className="text-sm text-muted-foreground">{currentYear + 543}</span>
-        </button>
-
-        {/* Calendar Day Button */}
-        <button
-          onClick={openCalendarView}
-          className={cn(
-            'flex items-center gap-1 rounded-full px-2 py-1.5',
-            'transition-all duration-200',
-            'hover:bg-accent active:scale-95',
-            selectedDay && 'bg-primary/10 text-primary'
-          )}
-        >
-          <CalendarDays className="size-5.5" />
-          {selectedDay && (
-            <span className="text-xs font-semibold">
-              {selectedDay.getDate()}
-            </span>
-          )}
         </button>
 
         {/* Clear Day Selection */}
@@ -239,8 +240,8 @@ export function MonthPicker({
       </div>
 
       {/* Selected Day Indicator */}
-      {selectedDay && (
-        <div className="mt-2 flex justify-center animate-in slide-in-from-top-2 duration-200">
+      {/* {selectedDay && (
+        <div className="flex justify-center animate-in slide-in-from-top-2 duration-200">
           <div className={cn(
             'inline-flex items-center gap-2 px-3 py-1 rounded-full',
             'bg-primary/10 text-primary text-xs font-medium'
@@ -250,7 +251,7 @@ export function MonthPicker({
             </span>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Expanded Views */}
       {viewMode !== 'compact' && (
@@ -262,7 +263,7 @@ export function MonthPicker({
           />
 
           <div className={cn(
-            'absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2',
+            'absolute  top-full z-50 mt-2 -translate-x-1/2',
             'animate-in zoom-in-95 slide-in-from-top-2 duration-200',
             'rounded-2xl border border-border/50 bg-popover shadow-2xl',
             'overflow-hidden',

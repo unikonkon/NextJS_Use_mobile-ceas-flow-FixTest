@@ -51,9 +51,9 @@ export function SummaryBar({
       <div className="absolute -right-12 -top-12 size-40 rounded-full bg-primary/5 blur-3xl" />
       <div className="absolute -left-8 -bottom-8 size-32 rounded-full bg-primary/3 blur-2xl" />
 
-      <div className="relative p-4">
+      <div className="relative px-4 py-1">
         {/* Header - Wallet info or default */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-3">
             {wallet ? (
               <>

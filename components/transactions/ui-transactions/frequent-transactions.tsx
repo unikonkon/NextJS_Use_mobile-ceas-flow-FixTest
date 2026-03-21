@@ -32,11 +32,11 @@ function FrequentItem({ analysis, transactionType, onClick }: FrequentItemProps)
     <button
       onClick={onClick}
       className={cn(
-        'flex items-center gap-2 p-1 rounded-xl w-full',
+        'flex items-center gap-2 py-0.5 rounded-sm w-full',
         'bg-muted/30 hover:bg-muted/50 active:scale-[0.98]',
         'border border-transparent hover:border-border/50',
         'transition-all duration-200',
-        'text-left'
+        'text-center border-border/30'
       )}
     >
       {/* Category Icon */}
@@ -51,11 +51,11 @@ function FrequentItem({ analysis, transactionType, onClick }: FrequentItemProps)
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center justify-center gap-1">
 
           <span
             className={cn(
-              'text-xs font-bold shrink-0',
+              'text-xs font-bold text-center shrink-0 w-full',
               transactionType === 'expense' ? 'text-expense' : 'text-income'
             )}
           >
@@ -64,14 +64,14 @@ function FrequentItem({ analysis, transactionType, onClick }: FrequentItemProps)
         </div>
 
         {/* Note & Count */}
-        <div className="flex items-center justify-between gap-1 mt-0.5">
+        <div className="flex items-center justify-center gap-1 mt-0.5">
           {analysis.note ? (
             <span className="text-[10px] text-muted-foreground truncate flex items-center gap-0.5">
               <FileText className="size-2.5" />
               {analysis.note}
             </span>
           ) : (
-            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5 shrink-0 truncate w-full">
+            <span className="text-[10px] text-muted-foreground flex justify-center items-center gap-0.5 shrink-0 truncate w-full">
               {category.name}
             </span>
           )}
@@ -133,11 +133,10 @@ export function FrequentTransactions({
   }
 
   return (
-    <div className="px-1 py-1">
+    <div className="px-1">
       <div
         className={cn(
-          'rounded-xl border border-border/30 bg-card/50 overflow-hidden',
-          'transition-all duration-300'
+          'py-1'
         )}
       >
         {/* Header */}
@@ -151,11 +150,11 @@ export function FrequentTransactions({
           <span className="text-xs font-medium text-foreground">รายการใช้ซ้ำบ่อย</span>
         </div> */}
 
-        <div className="px-2 pb-2space-y-3">
+        <div className="space-y-1">
           {/* Basic Matches Section */}
           {basicMatches.length > 0 && (
             <div>
-              <div className="flex items-center gap-1 mb-1.5 px-1">
+              {/* <div className="flex items-center gap-1 mb-1.5 px-1">
                 <span className="text-[10px] font-medium text-muted-foreground">
                   เลือกใช้ซ้ำ หมวดหมู่ + จำนวนเงิน
                 </span>
@@ -169,7 +168,7 @@ export function FrequentTransactions({
                 >
                   {basicMatches.length}
                 </span>
-              </div>
+              </div> */}
               <div className="grid grid-cols-6 gap-1">
                 {basicMatches.map((analysis) => (
                   <FrequentItem
@@ -186,7 +185,7 @@ export function FrequentTransactions({
           {/* Full Matches Section */}
           {fullMatches.length > 0 && (
             <div>
-              <div className="flex items-center gap-1 mb-1.5 px-1">
+              {/* <div className="flex items-center gap-1 mb-1.5 px-1">
                 <span className="text-[10px] font-medium text-muted-foreground">
                   เลือกใช้ซ้ำ หมวดหมู่ + จำนวนเงิน + บันทึก
                 </span>
@@ -200,7 +199,7 @@ export function FrequentTransactions({
                 >
                   {fullMatches.length}
                 </span>
-              </div>
+              </div> */}
               <div className="grid grid-cols-6 gap-1">
                 {fullMatches.map((analysis) => (
                   <FrequentItem

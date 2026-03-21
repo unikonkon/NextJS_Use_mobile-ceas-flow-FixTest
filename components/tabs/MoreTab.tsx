@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { Header, PageContainer } from '@/components/layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { User, Palette, ChevronRight, Check, Database, FileSpreadsheet, PlusCircle, Bell } from 'lucide-react';
+import { User, Palette, ChevronRight, Check, Database, FileSpreadsheet, PlusCircle, Bell, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useThemeStore, type ThemeType } from '@/lib/stores/theme-store';
+import { useSettingsStore } from '@/lib/stores/settings-store';
 import { StorageInfoCard, ExportDataCard, AutoOpenSettingCard, SettingAlertPriceCard } from './MoreTabComponent';
 
 interface SettingsMenuItemProps {
@@ -142,6 +143,10 @@ export function MoreTab() {
   const [showExportData, setShowExportData] = useState(false);
   const [showAutoOpenSetting, setShowAutoOpenSetting] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
+  const frequentOnHome = useSettingsStore((s) => s.frequentOnHome);
+  const setFrequentOnHome = useSettingsStore((s) => s.setFrequentOnHome);
+  const frequentOnAddSheet = useSettingsStore((s) => s.frequentOnAddSheet);
+  const setFrequentOnAddSheet = useSettingsStore((s) => s.setFrequentOnAddSheet);
   const handleAccountClick = () => {
     // TODO: Navigate to account settings
     console.log('Account settings clicked');
@@ -200,15 +205,84 @@ export function MoreTab() {
         <div className="flex flex-col pt-3">
           <SettingsMenuItem
             icon={<PlusCircle className="size-5" />}
-            title="เปิดหน้าเพิ่มรายการอัตโนมัติ"
+            title="ตั้งค่าการเพิ่มรายการ"
             onClick={handleAutoOpenClick}
           />
         </div>
 
-        {/* Auto Open Setting Card */}
+        {/* Auto Open Setting Card + Frequent Transactions Toggles */}
         {showAutoOpenSetting && (
-          <div className="animate-slide-up mt-1">
+          <div className="animate-slide-up mt-1 space-y-2">
             <AutoOpenSettingCard />
+
+            {/* Frequent Transactions Toggles */}
+            <Card className="bg-card border-border overflow-hidden">
+              <CardContent className="p-0">
+                {/* Toggle 1: หน้าหลัก (HomeTab) */}
+                <div
+                  className="flex items-center justify-between px-4 py-3 cursor-pointer active:bg-muted/30 transition-colors"
+                  onClick={() => setFrequentOnHome(!frequentOnHome)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center size-10 rounded-lg bg-accent text-accent-foreground">
+                      <Repeat className="size-5" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-foreground">รายการใช้ซ้ำ - หน้าหลัก</span>
+                      <span className="text-xs text-muted-foreground">
+                        แสดงรายการใช้ซ้ำในหน้าหลัก
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    className={cn(
+                      'relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0',
+                      frequentOnHome ? 'bg-primary' : 'bg-muted'
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform duration-200',
+                        frequentOnHome ? 'translate-x-5.5' : 'translate-x-0.5'
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t border-border/30 mx-4" />
+
+                {/* Toggle 2: หน้าเพิ่มรายการ (AddTransactionSheet) */}
+                <div
+                  className="flex items-center justify-between px-4 py-3 cursor-pointer active:bg-muted/30 transition-colors"
+                  onClick={() => setFrequentOnAddSheet(!frequentOnAddSheet)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center size-10 rounded-lg bg-accent text-accent-foreground">
+                      <Repeat className="size-5" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-foreground">รายการใช้ซ้ำ - เพิ่มรายการ</span>
+                      <span className="text-xs text-muted-foreground">
+                        แสดงรายการใช้ซ้ำในหน้าเพิ่มรายการ
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    className={cn(
+                      'relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0',
+                      frequentOnAddSheet ? 'bg-primary' : 'bg-muted'
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform duration-200',
+                        frequentOnAddSheet ? 'translate-x-5.5' : 'translate-x-0.5'
+                      )}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 

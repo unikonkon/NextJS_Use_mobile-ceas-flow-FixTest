@@ -6,3 +6,4 @@ export { TransactionList } from './transaction-list';
 export { AddTransactionSheet } from './add-transaction-sheet';
 export { EditTransactionSheet } from './edit-transaction-sheet';
 export { WalletPickerModal } from './wallet-picker-modal';
+export { FrequentTransactions } from './ui-transactions/frequent-transactions';
