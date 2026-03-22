@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { Header, PageContainer } from '@/components/layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { User, Palette, ChevronRight, Check, Database, FileSpreadsheet, PlusCircle, Bell, Repeat } from 'lucide-react';
+import { User, Palette, ChevronRight, Check, Database, FileSpreadsheet, FileText, PlusCircle, Bell, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useThemeStore, type ThemeType } from '@/lib/stores/theme-store';
 import { useSettingsStore } from '@/lib/stores/settings-store';
-import { StorageInfoCard, ExportDataCard, AutoOpenSettingCard, SettingAlertPriceCard } from './MoreTabComponent';
+import { StorageInfoCard, ExportDataCard, ExportTxtCard, AutoOpenSettingCard, SettingAlertPriceCard } from './MoreTabComponent';
 
 interface SettingsMenuItemProps {
   icon: React.ReactNode;
@@ -142,6 +142,7 @@ export function MoreTab() {
   const [showStorageInfo, setShowStorageInfo] = useState(false);
   const [showExportData, setShowExportData] = useState(false);
   const [showAutoOpenSetting, setShowAutoOpenSetting] = useState(false);
+  const [showExportTxt, setShowExportTxt] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const frequentOnHome = useSettingsStore((s) => s.frequentOnHome);
   const setFrequentOnHome = useSettingsStore((s) => s.setFrequentOnHome);
@@ -166,6 +167,10 @@ export function MoreTab() {
 
   const handleAutoOpenClick = () => {
     setShowAutoOpenSetting(!showAutoOpenSetting);
+  };
+
+  const handleExportTxtClick = () => {
+    setShowExportTxt(!showExportTxt);
   };
 
   const handleAlertClick = () => {
@@ -298,6 +303,21 @@ export function MoreTab() {
         {showExportData && (
           <div className="animate-slide-up mt-1">
             <ExportDataCard />
+          </div>
+        )}
+
+        <div className="flex flex-col pt-3">
+          <SettingsMenuItem
+            icon={<FileText className="size-5" />}
+            title="ส่งออกข้อมูล TXT"
+            onClick={handleExportTxtClick}
+          />
+        </div>
+
+        {/* Export TXT Card */}
+        {showExportTxt && (
+          <div className="animate-slide-up mt-1">
+            <ExportTxtCard />
           </div>
         )}
 
