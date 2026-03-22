@@ -12,10 +12,11 @@ import { StorageInfoCard, ExportDataCard, ExportTxtCard, AutoOpenSettingCard, Se
 interface SettingsMenuItemProps {
   icon: React.ReactNode;
   title: string;
+  isOpen?: boolean;
   onClick?: () => void;
 }
 
-function SettingsMenuItem({ icon, title, onClick }: SettingsMenuItemProps) {
+function SettingsMenuItem({ icon, title, isOpen, onClick }: SettingsMenuItemProps) {
   return (
     <Card
       className={cn(
@@ -33,7 +34,10 @@ function SettingsMenuItem({ icon, title, onClick }: SettingsMenuItemProps) {
           </div>
           <span className="font-medium text-foreground">{title}</span>
         </div>
-        <ChevronRight className="size-5 text-muted-foreground" />
+        <ChevronRight className={cn(
+          'size-7 text-muted-foreground transition-transform duration-200',
+          isOpen && 'rotate-90'
+        )} />
       </CardContent>
     </Card>
   );
@@ -194,6 +198,7 @@ export function MoreTab() {
           <SettingsMenuItem
             icon={<Palette className="size-5" />}
             title="การตั้งค่า ธีมสี"
+            isOpen={showThemeSelector}
             onClick={handleThemeClick}
           />
         </div>
@@ -211,6 +216,7 @@ export function MoreTab() {
           <SettingsMenuItem
             icon={<PlusCircle className="size-5" />}
             title="ตั้งค่าการเพิ่มรายการ"
+            isOpen={showAutoOpenSetting}
             onClick={handleAutoOpenClick}
           />
         </div>
@@ -295,6 +301,7 @@ export function MoreTab() {
           <SettingsMenuItem
             icon={<FileSpreadsheet className="size-5" />}
             title="ส่งออกข้อมูล Excel"
+            isOpen={showExportData}
             onClick={handleExportClick}
           />
         </div>
@@ -310,6 +317,7 @@ export function MoreTab() {
           <SettingsMenuItem
             icon={<FileText className="size-5" />}
             title="ส่งออกข้อมูล TXT"
+            isOpen={showExportTxt}
             onClick={handleExportTxtClick}
           />
         </div>
@@ -325,6 +333,7 @@ export function MoreTab() {
           <SettingsMenuItem
             icon={<Database className="size-5" />}
             title="ข้อมูล Storage"
+            isOpen={showStorageInfo}
             onClick={handleStorageClick}
           />
         </div>
@@ -341,6 +350,7 @@ export function MoreTab() {
           <SettingsMenuItem
             icon={<Bell className="size-5" />}
             title="แจ้งเตือนรายจ่าย"
+            isOpen={showAlert}
             onClick={handleAlertClick}
           />
         </div>
