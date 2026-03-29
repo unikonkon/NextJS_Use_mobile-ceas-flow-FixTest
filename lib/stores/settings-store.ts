@@ -6,6 +6,7 @@ import { create } from 'zustand';
 interface AppSettings {
   autoOpenTransaction: boolean;
   frequentOnHome: boolean;
+  frequentOnHomeCount: number;
   frequentOnAddSheet: boolean;
 }
 
@@ -16,7 +17,7 @@ const SETTINGS_STORAGE_KEY = 'ceas-flow-settings';
 // ============================================
 function getStoredSettings(): AppSettings {
   if (typeof window === 'undefined') {
-    return { autoOpenTransaction: false, frequentOnHome: true, frequentOnAddSheet: true };
+    return { autoOpenTransaction: false, frequentOnHome: true, frequentOnHomeCount: 6, frequentOnAddSheet: true };
   }
   try {
     const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
@@ -25,13 +26,14 @@ function getStoredSettings(): AppSettings {
       return {
         autoOpenTransaction: settings.autoOpenTransaction ?? false,
         frequentOnHome: settings.frequentOnHome ?? true,
+        frequentOnHomeCount: settings.frequentOnHomeCount ?? 6,
         frequentOnAddSheet: settings.frequentOnAddSheet ?? true,
       };
     }
   } catch (e) {
     // Ignore parse errors
   }
-  return { autoOpenTransaction: false, frequentOnHome: true, frequentOnAddSheet: true };
+  return { autoOpenTransaction: false, frequentOnHome: true, frequentOnHomeCount: 6, frequentOnAddSheet: true };
 }
 
 function saveSettings(settings: AppSettings) {
@@ -51,6 +53,8 @@ interface SettingsStore {
   setAutoOpenTransaction: (value: boolean) => void;
   frequentOnHome: boolean;
   setFrequentOnHome: (value: boolean) => void;
+  frequentOnHomeCount: number;
+  setFrequentOnHomeCount: (value: number) => void;
   frequentOnAddSheet: boolean;
   setFrequentOnAddSheet: (value: boolean) => void;
   // Track if auto-open has been triggered this session
@@ -68,23 +72,29 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
     // Initial State
     autoOpenTransaction: initialSettings.autoOpenTransaction,
     frequentOnHome: initialSettings.frequentOnHome,
+    frequentOnHomeCount: initialSettings.frequentOnHomeCount,
     frequentOnAddSheet: initialSettings.frequentOnAddSheet,
     hasAutoOpened: false,
 
     // Actions
     setAutoOpenTransaction: (value: boolean) => {
       set({ autoOpenTransaction: value });
-      saveSettings({ autoOpenTransaction: value, frequentOnHome: get().frequentOnHome, frequentOnAddSheet: get().frequentOnAddSheet });
+      saveSettings({ autoOpenTransaction: value, frequentOnHome: get().frequentOnHome, frequentOnHomeCount: get().frequentOnHomeCount, frequentOnAddSheet: get().frequentOnAddSheet });
     },
 
     setFrequentOnHome: (value: boolean) => {
       set({ frequentOnHome: value });
-      saveSettings({ autoOpenTransaction: get().autoOpenTransaction, frequentOnHome: value, frequentOnAddSheet: get().frequentOnAddSheet });
+      saveSettings({ autoOpenTransaction: get().autoOpenTransaction, frequentOnHome: value, frequentOnHomeCount: get().frequentOnHomeCount, frequentOnAddSheet: get().frequentOnAddSheet });
+    },
+
+    setFrequentOnHomeCount: (value: number) => {
+      set({ frequentOnHomeCount: value });
+      saveSettings({ autoOpenTransaction: get().autoOpenTransaction, frequentOnHome: get().frequentOnHome, frequentOnHomeCount: value, frequentOnAddSheet: get().frequentOnAddSheet });
     },
 
     setFrequentOnAddSheet: (value: boolean) => {
       set({ frequentOnAddSheet: value });
-      saveSettings({ autoOpenTransaction: get().autoOpenTransaction, frequentOnHome: get().frequentOnHome, frequentOnAddSheet: value });
+      saveSettings({ autoOpenTransaction: get().autoOpenTransaction, frequentOnHome: get().frequentOnHome, frequentOnHomeCount: get().frequentOnHomeCount, frequentOnAddSheet: value });
     },
 
     setHasAutoOpened: (value: boolean) => {

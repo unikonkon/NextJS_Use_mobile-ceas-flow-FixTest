@@ -23,7 +23,7 @@ function SettingsMenuItem({ icon, title, isOpen, onClick }: SettingsMenuItemProp
         'cursor-pointer transition-all duration-200',
         'hover:shadow-soft hover:scale-[1.02]',
         'active:scale-[0.98]',
-        'bg-card border-border'
+        'bg-accent border-border'
       )}
       onClick={onClick}
     >
@@ -150,6 +150,8 @@ export function MoreTab() {
   const [showAlert, setShowAlert] = useState(false);
   const frequentOnHome = useSettingsStore((s) => s.frequentOnHome);
   const setFrequentOnHome = useSettingsStore((s) => s.setFrequentOnHome);
+  const frequentOnHomeCount = useSettingsStore((s) => s.frequentOnHomeCount);
+  const setFrequentOnHomeCount = useSettingsStore((s) => s.setFrequentOnHomeCount);
   const frequentOnAddSheet = useSettingsStore((s) => s.frequentOnAddSheet);
   const setFrequentOnAddSheet = useSettingsStore((s) => s.setFrequentOnAddSheet);
   const handleAccountClick = () => {
@@ -259,6 +261,32 @@ export function MoreTab() {
                     />
                   </div>
                 </div>
+
+                {/* Count Selector - show when frequentOnHome is enabled */}
+                {frequentOnHome && (
+                  <>
+                    <div className="border-t border-border/30 mx-4" />
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <span className="text-sm text-muted-foreground ml-13">จำนวนที่แสดง</span>
+                      <div className="flex items-center gap-1.5">
+                        {[3, 6, 9, 12, 15, 18].map((count) => (
+                          <button
+                            key={count}
+                            onClick={() => setFrequentOnHomeCount(count)}
+                            className={cn(
+                              'min-w-8 h-8 rounded-lg text-sm font-medium transition-all duration-200',
+                              frequentOnHomeCount === count
+                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                            )}
+                          >
+                            {count}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <div className="border-t border-border/30 mx-4" />
 

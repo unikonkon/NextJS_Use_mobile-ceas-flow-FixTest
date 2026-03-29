@@ -258,7 +258,7 @@ export function AddTransactionSheet({
           />
 
           {/* Handle bar */}
-          <div data-drag-handle className="flex justify-center pt-2 pb-2 touch-none">
+          <div data-drag-handle className="flex justify-center pt-2 pb-1 touch-none">
             <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
 
@@ -284,7 +284,7 @@ export function AddTransactionSheet({
           />
 
           {/* Amount Display - Split Layout Card */}
-          <div className="px-1 pt-2 pb-0.5">
+          <div className="px-1 pb-0.5">
             <div
               className={cn(
                 "relative overflow-hidden rounded-xl transition-all duration-300",

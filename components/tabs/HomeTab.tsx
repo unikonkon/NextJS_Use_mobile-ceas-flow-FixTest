@@ -49,6 +49,7 @@ export function HomeTab({ onCreateWallet }: HomeTabProps) {
 
   // Settings store
   const frequentOnHome = useSettingsStore((s) => s.frequentOnHome);
+  const frequentOnHomeCount = useSettingsStore((s) => s.frequentOnHomeCount);
 
   // Alert settings store
   const isMonthlyTargetEnabled = useAlertSettingsStore((s) => s.isMonthlyTargetEnabled);
@@ -211,13 +212,13 @@ export function HomeTab({ onCreateWallet }: HomeTabProps) {
               walletId={selectedWalletId}
               transactionType="expense"
               onSelect={handleFrequentSelect}
-              maxItems={6}
+              maxItems={frequentOnHomeCount}
             />
             <FrequentTransactions
               walletId={selectedWalletId}
               transactionType="income"
               onSelect={handleFrequentSelect}
-              maxItems={6}
+              maxItems={frequentOnHomeCount}
             />
           </>
         )}
