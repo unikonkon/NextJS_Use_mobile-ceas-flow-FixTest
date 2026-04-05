@@ -362,7 +362,7 @@ function WalletFormSheet({ open, onOpenChange, wallet, onSubmit }: WalletFormShe
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="min-h-[60vh] rounded-t-[2rem] px-0 pb-0 border-t-0">
+      <SheetContent side="bottom" noAnimation={true} className="min-h-[60vh] rounded-t-[2rem] px-0 pb-0 border-t-0">
         <SheetTitle className="sr-only">
           {wallet ? 'แก้ไขกระเป๋าเงิน' : 'เพิ่มกระเป๋าเงินใหม่'}
         </SheetTitle>

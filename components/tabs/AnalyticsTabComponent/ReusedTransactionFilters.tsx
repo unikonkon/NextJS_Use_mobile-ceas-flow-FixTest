@@ -164,7 +164,7 @@ export function ReusedTransactionSheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl px-0">
+      <SheetContent side="bottom" noAnimation={true} className="h-[85vh] rounded-t-3xl px-0">
         {/* Drag Handle */}
         <div className="flex justify-center pt-2 pb-3" data-drag-handle>
           <div className="w-12 h-1.5 rounded-full bg-muted-foreground/30" />

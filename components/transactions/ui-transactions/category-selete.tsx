@@ -129,6 +129,7 @@ export function CategorySelectSheet({
   return (
     <Sheet open={open} onOpenChange={handleClose}>
       <SheetContent
+        noAnimation={true}
         side="bottom"
         className="min-h-[60vh] max-h-[80vh] rounded-t-[2rem] px-0 pb-0 overflow-hidden border-t-0"
       >

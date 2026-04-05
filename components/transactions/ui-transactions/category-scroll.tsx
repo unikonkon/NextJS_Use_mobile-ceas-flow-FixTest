@@ -503,7 +503,7 @@ export function CategoryScroll({
         ref={scrollRef}
         className={cn(
           'relative px-4 py-1.5 scroll-smooth',
-          'max-h-[158px] overflow-y-auto'
+          'max-h-[130px] overflow-y-auto'
         )}
       >
         <div className="flex flex-wrap gap-1 content-start justify-between">

@@ -131,6 +131,7 @@ export function EditTransactionSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
+        noAnimation={true}
         side="bottom"
         className="min-h-[52vh] rounded-t-[2rem] px-0 pb-0 overflow-hidden border-t-0"
       >

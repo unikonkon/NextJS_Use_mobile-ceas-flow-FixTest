@@ -54,6 +54,7 @@ export function WalletPickerModal({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
+        noAnimation={true}
         side="bottom"
         className="min-h-[40vh] max-h-[65vh] rounded-t-[2rem] px-0 pb-0 overflow-hidden border-t-0"
       >
